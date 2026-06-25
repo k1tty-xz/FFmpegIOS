@@ -1,42 +1,43 @@
 #!/usr/bin/env bash
-# ===========================================================================
-# build-ffmpeg-ios.sh — cross-compile FFmpeg + ffprobe for jailbroken iOS arm64
 #
-# Runs on a macOS (Apple Silicon) GitHub Actions runner. Builds a "full" GPL +
-# nonfree FFmpeg statically linked against:
+# build-ffmpeg-ios.sh — cross-compile a static FFmpeg + ffprobe for iOS arm64.
+#
+# Runs on a macOS (Apple Silicon) runner. Produces ldid-signed Mach-O arm64
+# binaries in artifacts/bin, statically linked against:
 #   video : libx264, libx265, libvpx (VP8/9), libdav1d (AV1 decode)
 #   audio : libopus, libmp3lame, libfdk-aac, libvorbis (+libogg)
-#   apple : VideoToolbox (hw h264/hevc), AudioToolbox  (built in, no ext dep)
+#   apple : VideoToolbox (hw H.264/HEVC) + AudioToolbox (built in, no ext dep)
 #
-# Output: artifacts/bin/{ffmpeg,ffprobe}  — ldid-signed Mach-O arm64 executables.
+# Usage: build-ffmpeg-ios.sh [FFMPEG_VERSION] [IOS_MIN]   e.g. 8.1.2 14.0
 #
-# Usage: build-ffmpeg-ios.sh [FFMPEG_VERSION] [IOS_MIN]
-#   e.g. build-ffmpeg-ios.sh 8.1.2 14.0
+# Scope note: this is the high-value codec set. Adding the subtitle/text stack
+# (freetype/fribidi/harfbuzz/libass/fontconfig) or extra AV1 encoders
+# (libaom/SVT-AV1) is a mechanical extension of the same helpers below.
 #
-# NOTE on scope: this is the high-value codec set. The subtitle/text stack
-# (freetype+fribidi+harfbuzz+libass+fontconfig) and extra AV1 encoders
-# (libaom/SVT-AV1) are deliberately left out to keep build time + failure
-# surface sane; each is a mechanical add following the same helpers below.
-# ===========================================================================
-# -E (errtrace): make the ERR trap fire for failures INSIDE functions too,
-# otherwise dump_logs never runs when a build_* function fails.
+# -E (errtrace) is required so the ERR trap fires for failures inside functions.
 set -Eeuo pipefail
 
-FFMPEG_VERSION="${1:-8.1.2}"
-IOS_MIN="${2:-14.0}"
-ARCH="arm64"
+# ---------------------------------------------------------------------------
+# Configuration
+# ---------------------------------------------------------------------------
+readonly FFMPEG_VERSION="${1:-8.1.2}"
+readonly IOS_MIN="${2:-14.0}"
+readonly ARCH="arm64"
+readonly HOST_TRIPLE="aarch64-apple-darwin"
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-WORK="$ROOT/build"
-PREFIX="$WORK/prefix"      # external libs install here (static)
-SRC="$WORK/src"
-ART="$ROOT/artifacts"
-JOBS="$(sysctl -n hw.ncpu)"
+readonly ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+readonly WORK="$ROOT/build"
+readonly SRC="$WORK/src"          # dependency sources are cloned/unpacked here
+readonly PREFIX="$WORK/prefix"    # dependencies install here (static)
+readonly ART="$ROOT/artifacts"    # FFmpeg + final binaries install here
+readonly JOBS="$(sysctl -n hw.ncpu)"
 
-mkdir -p "$PREFIX" "$SRC" "$ART/bin"
-
-# --- toolchain (target the iPhoneOS SDK, not the host macOS SDK) ------------
-SDKPATH="$(xcrun --sdk iphoneos --show-sdk-path)"
+# ---------------------------------------------------------------------------
+# Toolchain — target the iPhoneOS SDK, never the host macOS SDK.
+# (Do NOT add -fembed-bitcode=no: it is invalid clang syntax. Bitcode is
+#  deprecated and off by default since Xcode 14, so it needs no flag.)
+# ---------------------------------------------------------------------------
+readonly SDKPATH="$(xcrun --sdk iphoneos --show-sdk-path)"
 export CC="$(xcrun --sdk iphoneos -f clang)"
 export CXX="$(xcrun --sdk iphoneos -f clang++)"
 export AR="$(xcrun --sdk iphoneos -f ar)"
@@ -44,167 +45,43 @@ export RANLIB="$(xcrun --sdk iphoneos -f ranlib)"
 export STRIP="$(xcrun --sdk iphoneos -f strip)"
 export LD="$(xcrun --sdk iphoneos -f ld)"
 
-# NOTE: do not add -fembed-bitcode=no — that is invalid clang syntax and makes
-# every compile fail with "invalid value 'no'". Bitcode is deprecated and off
-# by default since Xcode 14, so it simply doesn't need to be specified.
-ARCH_FLAGS="-arch $ARCH -isysroot $SDKPATH -miphoneos-version-min=$IOS_MIN"
+readonly ARCH_FLAGS="-arch $ARCH -isysroot $SDKPATH -miphoneos-version-min=$IOS_MIN"
 export CFLAGS="$ARCH_FLAGS -I$PREFIX/include -fPIC -O2"
 export CXXFLAGS="$CFLAGS"
-export LDFLAGS="$ARCH_FLAGS -L$PREFIX/lib"
 export CPPFLAGS="$CFLAGS"
+export LDFLAGS="$ARCH_FLAGS -L$PREFIX/lib"
 
-# Force pkg-config to look ONLY in our prefix, never at host macOS libs.
+# Force pkg-config to resolve ONLY our prefix, never host macOS libraries.
 export PKG_CONFIG_LIBDIR="$PREFIX/lib/pkgconfig"
 export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
 
-HOST_TRIPLE="aarch64-apple-darwin"
+# ---------------------------------------------------------------------------
+# Small helpers
+# ---------------------------------------------------------------------------
+log()        { printf '\n==> %s\n' "$*"; }
+group()      { echo "::group::$*"; }
+endgroup()   { echo "::endgroup::"; }
+make_install() { make -j"$JOBS"; make install; }
 
-echo "==> FFmpeg $FFMPEG_VERSION | iOS min $IOS_MIN | $JOBS jobs"
-echo "==> SDK: $SDKPATH"
-
-# ===========================================================================
-# DIAGNOSTICS — gather facts, do not guess.
-# On any error, dump every build system's log so the real failing command is
-# visible in CI output.
-# ===========================================================================
-dump_logs() {
-  echo "::group::AUTODUMP: build logs on error"
-  # Find every build-system log under the source tree so whichever dependency
-  # failed has its real error surfaced — no need to enumerate each one.
-  find "$SRC" -type f \( \
-        -name config.log \
-     -o -name meson-log.txt \
-     -o -name CMakeError.log \
-     -o -name CMakeOutput.log \) 2>/dev/null | while read -r f; do
-    echo "===================== $f (tail -120) ====================="
-    tail -120 "$f"
-    echo
-  done
-  echo "::endgroup::"
+# Fetch sources (idempotent: skip if already present).
+fetch_git() {  # <name> <url> [branch]
+  local name="$1" url="$2" branch="${3:-}"
+  [ -d "$SRC/$name" ] || git clone --depth 1 ${branch:+--branch "$branch"} "$url" "$SRC/$name"
 }
-trap dump_logs ERR
-
-preflight() {
-  echo "::group::PREFLIGHT: toolchain facts"
-  echo "uname        : $(uname -a)"
-  echo "host clang   :"; clang --version | sed 's/^/    /'
-  echo "target CC    : $CC"
-  echo "CC version   :"; "$CC" --version | sed 's/^/    /'
-  echo "SDKPATH      : $SDKPATH"; [ -d "$SDKPATH" ] && echo "    (exists)" || echo "    (MISSING!)"
-  echo "CFLAGS       : $CFLAGS"
-  echo "CXXFLAGS     : $CXXFLAGS"
-  echo "LDFLAGS      : $LDFLAGS"
-  echo "ARCH_FLAGS   : $ARCH_FLAGS"
-  echo "HOST_TRIPLE  : $HOST_TRIPLE"
-  echo "JOBS         : $JOBS"
-  echo "-- resolved toolchain binaries --"
-  for t in CC CXX AR RANLIB STRIP LD; do echo "  $t = ${!t}"; done
-  echo "-- SDK details --"
-  echo "  iphoneos SDK version : $(xcrun --sdk iphoneos --show-sdk-version 2>/dev/null)"
-  echo "  iphoneos SDK build   : $(xcrun --sdk iphoneos --show-sdk-build-version 2>/dev/null)"
-  echo "-- build-tool versions --"
-  for tool in cmake meson ninja nasm yasm pkg-config ldid otool vtool lipo ar; do
-    if command -v "$tool" >/dev/null 2>&1; then
-      printf '  %-10s %s  (%s)\n' "$tool" "$("$tool" --version 2>/dev/null | head -1)" "$(command -v "$tool")"
-    else
-      printf '  %-10s [NOT FOUND]\n' "$tool"
-    fi
-  done
-
-  printf 'int main(void){return 0;}\n' > "$WORK/t.c"
-
-  echo "-- TEST 1: compile+link with target toolchain (verbose) --"
-  if "$CC" -v $CFLAGS $LDFLAGS "$WORK/t.c" -o "$WORK/t.out" 2> "$WORK/t.log"; then
-    echo "[TEST1 = PASS] compile+link succeeded"
-    file "$WORK/t.out"
-  else
-    echo "[TEST1 = FAIL] compile+link failed — full clang output below:"
-    cat "$WORK/t.log"
-  fi
-
-  echo "-- TEST 2: can the produced iOS binary RUN on this macOS host? --"
-  if [ -f "$WORK/t.out" ]; then
-    if "$WORK/t.out" 2> "$WORK/t.run.log"; then
-      echo "[TEST2 = RUNS] binary executed on host (=> host==target, x264 will think NATIVE)"
-    else
-      echo "[TEST2 = CANNOT RUN] rc=$? — expected for a cross build."
-      echo "    => any configure that RUNS its test binary will wrongly report 'no working compiler'."
-      cat "$WORK/t.run.log" 2>/dev/null || true
-    fi
-  fi
-  echo "::endgroup::"
-}
-
-preflight
-
-# ===========================================================================
-# verify_lib — after a library installs, prove its archive is iOS-arm64 with
-# NO macOS-tagged objects. This catches the recurring "built for 'macOS'"
-# asm bug at the SOURCE (right when the lib builds) instead of 9 libraries
-# later in FFmpeg's link test. Non-fatal: logs loudly, never aborts the run.
-#
-# Platform is read from each object's Mach-O load commands:
-#   LC_BUILD_VERSION 'platform' : 1=macOS 2=iOS 3=tvOS 7=iOS-sim ...
-#   (older objects)             : LC_VERSION_MIN_IPHONEOS / _MACOSX
-# ===========================================================================
-verify_lib() {  # archive-name [archive-name ...]
-  echo "::group::VERIFY platform: $*"
-  local a path tmp obj total ios macos other plat badlist
-  for a in "$@"; do
-    path="$PREFIX/lib/$a"
-    if [ ! -f "$path" ]; then echo "  [MISSING] $path"; continue; fi
-    echo "  --- $a ---"
-    echo -n "    lipo : "; lipo -info "$path" 2>/dev/null || file "$path"
-    tmp="$(mktemp -d)"
-    ( cd "$tmp" && ar x "$path" 2>/dev/null ) || true
-    total=0; ios=0; macos=0; other=0; badlist=""
-    for obj in "$tmp"/*.o; do
-      [ -f "$obj" ] || continue
-      total=$((total+1))
-      plat="$(otool -l "$obj" 2>/dev/null | awk '
-        /LC_BUILD_VERSION/{b=1}
-        b&&/platform/{print $2; exit}
-        /LC_VERSION_MIN_IPHONEOS/{print "ios"; exit}
-        /LC_VERSION_MIN_MACOSX/{print "macos"; exit}')"
-      case "$plat" in
-        2|IOS|ios)        ios=$((ios+1));;
-        1|MACOS|macos)    macos=$((macos+1)); badlist="$badlist $(basename "$obj")";;
-        *)                other=$((other+1));;
-      esac
-    done
-    echo "    objects: total=$total  ios=$ios  macos=$macos  other/unknown=$other"
-    if [ "$macos" -gt 0 ]; then
-      echo "    [!! FAIL] $macos macOS-tagged object(s) — these WILL break the iOS link:"
-      printf '%s\n' $badlist | sed '/^$/d' | head -15 | sed 's/^/        /'
-      echo "        (showing up to 15; sample LC_BUILD_VERSION below)"
-      otool -l "$tmp/$(printf '%s\n' $badlist | sed '/^$/d' | head -1)" 2>/dev/null \
-        | grep -A4 -iE "LC_BUILD_VERSION|LC_VERSION_MIN" | head -10 | sed 's/^/        /'
-    elif [ "$total" -eq 0 ]; then
-      echo "    [?? WARN] no objects extracted — could not verify"
-    else
-      echo "    [OK] all objects iOS-tagged"
-    fi
-    rm -rf "$tmp"
-  done
-  echo "::endgroup::"
-}
-
-# --- helpers ---------------------------------------------------------------
-fetch_git() {  # name url [ref]
-  local name="$1" url="$2" ref="${3:-}"
-  if [ ! -d "$SRC/$name" ]; then
-    git clone --depth 1 ${ref:+--branch "$ref"} "$url" "$SRC/$name"
-  fi
-}
-fetch_tar() {  # name url
+fetch_tar() {  # <name> <url>
   local name="$1" url="$2"
-  if [ ! -d "$SRC/$name" ]; then
-    mkdir -p "$SRC/$name"
-    curl -fsSL "$url" | tar -xf - -C "$SRC/$name" --strip-components=1
-  fi
+  [ -d "$SRC/$name" ] && return
+  mkdir -p "$SRC/$name"
+  curl -fsSL "$url" | tar -xf - -C "$SRC/$name" --strip-components=1
 }
 
-# meson cross file for iOS arm64 (used by dav1d)
+# Standard autotools configure for the audio libs (all share these flags).
+configure_static() {  # <extra configure args...>
+  ./configure --prefix="$PREFIX" --host="$HOST_TRIPLE" \
+    --enable-static --disable-shared "$@"
+}
+
+# meson cross file for iOS arm64 (used by dav1d).
 write_meson_cross() {
   cat > "$WORK/ios-arm64.meson" <<EOF
 [binaries]
@@ -226,55 +103,161 @@ c_link_args = ['-arch','$ARCH','-isysroot','$SDKPATH','-miphoneos-version-min=$I
 EOF
 }
 
-# ===========================================================================
-# external libraries
-# ===========================================================================
+# ---------------------------------------------------------------------------
+# Diagnostics — gather facts, never guess.
+# ---------------------------------------------------------------------------
+
+# On any failure, surface the real error by dumping every build-system log.
+dump_logs() {
+  group "AUTODUMP: build logs on error"
+  find "$SRC" -type f \( -name config.log -o -name meson-log.txt \
+       -o -name CMakeError.log -o -name CMakeOutput.log \) 2>/dev/null |
+  while read -r f; do
+    echo "===================== $f (tail -120) ====================="
+    tail -120 "$f"; echo
+  done
+  endgroup
+}
+trap dump_logs ERR
+
+# Print toolchain facts and prove the compiler can build for iOS arm64.
+preflight() {
+  group "PREFLIGHT: toolchain facts"
+  echo "uname      : $(uname -a)"
+  echo "SDK        : $SDKPATH ($(xcrun --sdk iphoneos --show-sdk-version 2>/dev/null))"
+  echo "CFLAGS     : $CFLAGS"
+  echo "LDFLAGS    : $LDFLAGS"
+  for t in CC CXX AR RANLIB STRIP LD; do echo "  $t = ${!t}"; done
+  echo "-- build-tool versions --"
+  for tool in cmake meson ninja nasm pkg-config ldid otool lipo; do
+    if command -v "$tool" >/dev/null 2>&1; then
+      printf '  %-10s %s\n' "$tool" "$("$tool" --version 2>/dev/null | head -1)"
+    else
+      printf '  %-10s [NOT FOUND]\n' "$tool"
+    fi
+  done
+
+  printf 'int main(void){return 0;}\n' > "$WORK/t.c"
+  if "$CC" $CFLAGS $LDFLAGS "$WORK/t.c" -o "$WORK/t.out" 2> "$WORK/t.log"; then
+    echo "[PASS] toolchain compiles+links for iOS arm64: $(file -b "$WORK/t.out")"
+  else
+    echo "[FAIL] toolchain cannot build — clang output:"; cat "$WORK/t.log"
+  fi
+  endgroup
+}
+
+# After a library installs, prove its archive contains ONLY iOS-arm64 objects.
+# Catches the recurring "built for 'macOS'" asm bug at its source. Non-fatal.
+#   Mach-O platform: LC_BUILD_VERSION 'platform' 1=macOS 2=iOS 7=iOS-sim
+#   (older objects)  LC_VERSION_MIN_IPHONEOS / _MACOSX
+verify_lib() {  # <archive.a> [archive.a ...]
+  group "VERIFY platform: $*"
+  local archive tmp obj plat total ios macos other bad
+  for archive in "$@"; do
+    local path="$PREFIX/lib/$archive"
+    if [ ! -f "$path" ]; then echo "  [MISSING] $path"; continue; fi
+    echo "  $archive: $(lipo -info "$path" 2>/dev/null || file -b "$path")"
+
+    tmp="$(mktemp -d)"; ( cd "$tmp" && ar x "$path" 2>/dev/null ) || true
+    total=0 ios=0 macos=0 other=0 bad=""
+    for obj in "$tmp"/*.o; do
+      [ -f "$obj" ] || continue
+      total=$((total + 1))
+      plat="$(otool -l "$obj" 2>/dev/null | awk '
+        /LC_BUILD_VERSION/{b=1}
+        b&&/platform/{print $2; exit}
+        /LC_VERSION_MIN_IPHONEOS/{print "ios"; exit}
+        /LC_VERSION_MIN_MACOSX/{print "macos"; exit}')"
+      case "$plat" in
+        2|IOS|ios)     ios=$((ios + 1)) ;;
+        1|MACOS|macos) macos=$((macos + 1)); bad="$bad $(basename "$obj")" ;;
+        *)             other=$((other + 1)) ;;
+      esac
+    done
+    rm -rf "$tmp"
+
+    echo "    objects: total=$total ios=$ios macos=$macos other=$other"
+    if   [ "$macos" -gt 0 ]; then
+      echo "    [FAIL] macOS-tagged objects will break the iOS link:"
+      printf '%s\n' $bad | sed '/^$/d' | head -15 | sed 's/^/        /'
+    elif [ "$total" -eq 0 ]; then
+      echo "    [WARN] no objects extracted — could not verify"
+    else
+      echo "    [OK] all objects iOS-tagged"
+    fi
+  done
+  endgroup
+}
+
+# Dump what FFmpeg's configure will actually see from pkg-config.
+diag_pkgconfig() {
+  group "PKG-CONFIG diagnostics"
+  echo "PKG_CONFIG_PATH: ${PKG_CONFIG_PATH:-<unset>}"
+  for p in x264 x265 vpx dav1d opus vorbis ogg fdk-aac; do
+    if pkg-config --exists "$p" 2>/dev/null; then
+      printf '  OK   %-9s %s\n' "$p" "$(pkg-config --modversion "$p" 2>/dev/null)"
+    else
+      printf '  FAIL %-9s (--exists failed)\n' "$p"
+    fi
+  done
+  endgroup
+}
+
+# Prove what the final binaries are: arch, platform, linkage, signature.
+introspect_binaries() {
+  group "BINARY introspection"
+  local b bin
+  for b in ffmpeg ffprobe; do
+    bin="$ART/bin/$b"
+    [ -f "$bin" ] || { echo "  [MISSING] $bin"; continue; }
+    echo "  ===== $b ($(ls -lh "$bin" | awk '{print $5}')) ====="
+    echo "    $(file -b "$bin")"
+    otool -l "$bin" 2>/dev/null | grep -A4 LC_BUILD_VERSION | head -5 | sed 's/^/    /'
+    echo "    linked dylibs:"; otool -L "$bin" 2>/dev/null | sed 's/^/      /' | head -30
+  done
+  endgroup
+}
+
+# ---------------------------------------------------------------------------
+# Dependency builds
+# ---------------------------------------------------------------------------
 
 build_x264() {
-  echo "==> x264"
+  log "x264"
   fetch_git x264 https://code.videolan.org/videolan/x264.git
-  cd "$SRC/x264"
-  make distclean >/dev/null 2>&1 || true
-  # --extra-asflags is essential: x264 assembles its .S files through a
-  # separate ASFLAGS path. Without the iOS -isysroot/-miphoneos-version-min,
-  # clang assembles them targeting the macOS HOST, producing macOS-tagged
-  # objects (e.g. bitstream-a-8.o) that fail to link into an iOS binary.
-  ./configure --prefix="$PREFIX" --host="$HOST_TRIPLE" \
-    --sysroot="$SDKPATH" \
+  cd "$SRC/x264"; make distclean >/dev/null 2>&1 || true
+  # --extra-asflags is essential: x264 assembles .S files through a separate
+  # ASFLAGS path; without the iOS flags those objects are tagged macOS and
+  # fail to link (e.g. bitstream-a-8.o).
+  ./configure --prefix="$PREFIX" --host="$HOST_TRIPLE" --sysroot="$SDKPATH" \
     --enable-static --disable-cli --enable-pic \
-    --extra-cflags="$CFLAGS" \
-    --extra-asflags="$CFLAGS" \
-    --extra-ldflags="$LDFLAGS"
-  make -j"$JOBS" && make install
+    --extra-cflags="$CFLAGS" --extra-asflags="$CFLAGS" --extra-ldflags="$LDFLAGS"
+  make_install
 }
 
 build_x265() {
-  echo "==> x265 (cmake)"
+  log "x265 (cmake)"
   fetch_git x265 https://bitbucket.org/multicoreware/x265_git.git
   rm -rf "$SRC/x265/build-ios"; mkdir -p "$SRC/x265/build-ios"; cd "$SRC/x265/build-ios"
+  # ENABLE_ASSEMBLY=OFF: x265 builds its ARM64 .S files through a rule that
+  # ignores CMAKE_ASM_FLAGS/OSX_DEPLOYMENT_TARGET, tagging them macOS. A pure
+  # C/C++ x265 is correctly iOS-tagged; only the software encoder is slower,
+  # and hevc_videotoolbox (hardware) is unaffected.
   cmake ../source \
     -DCMAKE_SYSTEM_NAME=iOS \
     -DCMAKE_OSX_ARCHITECTURES="$ARCH" \
     -DCMAKE_OSX_SYSROOT="$SDKPATH" \
     -DCMAKE_OSX_DEPLOYMENT_TARGET="$IOS_MIN" \
     -DCMAKE_INSTALL_PREFIX="$PREFIX" \
-    -DENABLE_SHARED=OFF -DENABLE_CLI=OFF \
-    -DCROSS_COMPILE_ARM64=ON \
-    `# x265 assembles its ARM64 .S files through a rule that ignores both` \
-    `# CMAKE_ASM_FLAGS and CMAKE_OSX_DEPLOYMENT_TARGET, so they get tagged for` \
-    `# the macOS host and fail to link into an iOS binary. Disabling assembly` \
-    `# yields a pure-C/C++ x265 (correctly iOS-tagged). Only the SOFTWARE x265` \
-    `# encoder is a bit slower; hevc_videotoolbox (hardware) is unaffected.` \
-    -DENABLE_ASSEMBLY=OFF
-  make -j"$JOBS" && make install
+    -DENABLE_SHARED=OFF -DENABLE_CLI=OFF -DENABLE_ASSEMBLY=OFF \
+    -DCROSS_COMPILE_ARM64=ON
+  make_install
 
-  # x265's CMake only generates/installs x265.pc when it can detect a version
-  # from a git tag; our shallow clone has no tags, so it silently skips it.
-  # FFmpeg REQUIRES x265 via pkg-config, so emit a minimal .pc ourselves.
-  # x265 is a C++ static lib, so static linking needs the C++ runtime (-lc++).
+  # x265's CMake skips x265.pc when version detection fails on a tagless
+  # shallow clone; FFmpeg requires x265 via pkg-config, so emit it ourselves.
+  # (C++ static lib => static link needs the C++ runtime, -lc++.)
   if [ ! -f "$PREFIX/lib/pkgconfig/x265.pc" ]; then
-    local ver
-    ver="$(awk '/#define[ \t]+X265_BUILD/{print $3}' "$PREFIX/include/x265.h" 2>/dev/null || true)"
+    local ver; ver="$(awk '/#define[ \t]+X265_BUILD/{print $3}' "$PREFIX/include/x265.h" 2>/dev/null || true)"
     cat > "$PREFIX/lib/pkgconfig/x265.pc" <<EOF
 prefix=$PREFIX
 exec_prefix=\${prefix}
@@ -293,145 +276,95 @@ EOF
 }
 
 build_libvpx() {
-  echo "==> libvpx"
+  log "libvpx"
   fetch_git libvpx https://chromium.googlesource.com/webm/libvpx
-  cd "$SRC/libvpx"
-  make distclean >/dev/null 2>&1 || true
+  cd "$SRC/libvpx"; make distclean >/dev/null 2>&1 || true
   ./configure --prefix="$PREFIX" --target=arm64-darwin-gcc \
+    --enable-static --disable-shared --enable-pic --enable-vp9-highbitdepth \
     --disable-examples --disable-tools --disable-docs --disable-unit-tests \
-    --enable-pic --enable-vp9-highbitdepth --enable-static --disable-shared \
     --extra-cflags="$CFLAGS"
-  make -j"$JOBS" && make install
+  make_install
 }
 
 build_dav1d() {
-  echo "==> dav1d (meson)"
+  log "dav1d (meson)"
   fetch_git dav1d https://code.videolan.org/videolan/dav1d.git
   write_meson_cross
   rm -rf "$SRC/dav1d/build-ios"
   meson setup "$SRC/dav1d/build-ios" "$SRC/dav1d" \
-    --cross-file "$WORK/ios-arm64.meson" \
-    --prefix "$PREFIX" --libdir lib \
+    --cross-file "$WORK/ios-arm64.meson" --prefix "$PREFIX" --libdir lib \
     --default-library=static -Denable_tools=false -Denable_tests=false
   ninja -C "$SRC/dav1d/build-ios" -j"$JOBS"
   ninja -C "$SRC/dav1d/build-ios" install
 }
 
 build_opus() {
-  echo "==> opus"
+  log "opus"
   fetch_git opus https://github.com/xiph/opus.git
   cd "$SRC/opus"; [ -x configure ] || ./autogen.sh
-  ./configure --prefix="$PREFIX" --host="$HOST_TRIPLE" \
-    --enable-static --disable-shared --disable-doc --disable-extra-programs
-  make -j"$JOBS" && make install
+  configure_static --disable-doc --disable-extra-programs
+  make_install
 }
 
 build_lame() {
-  echo "==> lame (mp3)"
+  log "lame (mp3)"
   fetch_tar lame https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz
   cd "$SRC/lame"
-  ./configure --prefix="$PREFIX" --host="$HOST_TRIPLE" \
-    --enable-static --disable-shared --disable-frontend
-  make -j"$JOBS" && make install
+  configure_static --disable-frontend
+  make_install
 }
 
 build_fdkaac() {
-  echo "==> fdk-aac"
+  log "fdk-aac"
   fetch_git fdk-aac https://github.com/mstorsjo/fdk-aac.git
   cd "$SRC/fdk-aac"; [ -x configure ] || ./autogen.sh
-  ./configure --prefix="$PREFIX" --host="$HOST_TRIPLE" \
-    --enable-static --disable-shared
-  make -j"$JOBS" && make install
+  configure_static
+  make_install
 }
 
 build_ogg() {
-  echo "==> libogg"
+  log "libogg"
   fetch_git ogg https://github.com/xiph/ogg.git
   cd "$SRC/ogg"; [ -x configure ] || ./autogen.sh
-  ./configure --prefix="$PREFIX" --host="$HOST_TRIPLE" \
-    --enable-static --disable-shared
-  make -j"$JOBS" && make install
+  configure_static
+  make_install
 }
 
 build_vorbis() {
-  echo "==> libvorbis"
+  log "libvorbis"
   fetch_git vorbis https://github.com/xiph/vorbis.git
   cd "$SRC/vorbis"
-  # Generate ./configure (autoreconf, without running it).
   autoreconf -fi
-  # libvorbis's configure injects the legacy Apple linker flag
-  # '-force_cpusubtype_ALL' for any *-darwin* host; the modern ld (Xcode 15)
-  # rejects it and the test_sharedbook link fails. Strip it out. (BSD sed.)
+  # libvorbis injects the legacy '-force_cpusubtype_ALL' flag for *-darwin*
+  # hosts; modern ld (Xcode 15) rejects it. Strip it out. (BSD sed.)
   sed -i '' 's/-force_cpusubtype_ALL//g' configure
-  ./configure --prefix="$PREFIX" --host="$HOST_TRIPLE" \
-    --enable-static --disable-shared --with-ogg="$PREFIX"
-  make -j"$JOBS" && make install
+  configure_static --with-ogg="$PREFIX"
+  make_install
 }
 
-# ===========================================================================
-# FFmpeg
-# ===========================================================================
 build_ffmpeg() {
-  echo "==> FFmpeg $FFMPEG_VERSION"
+  log "FFmpeg $FFMPEG_VERSION"
   fetch_tar ffmpeg "https://ffmpeg.org/releases/ffmpeg-$FFMPEG_VERSION.tar.xz"
-  cd "$SRC/ffmpeg"
-  make distclean >/dev/null 2>&1 || true
-
-  # --- pkg-config diagnostics: prove what FFmpeg's configure will see --------
-  echo "::group::PKG-CONFIG diagnostics (pre-FFmpeg-configure)"
-  echo "which pkg-config : $(command -v pkg-config)"
-  echo "PKG_CONFIG_LIBDIR: ${PKG_CONFIG_LIBDIR:-<unset>}"
-  echo "PKG_CONFIG_PATH  : ${PKG_CONFIG_PATH:-<unset>}"
-  echo "-- .pc files actually present in prefix --"
-  ls -la "$PREFIX/lib/pkgconfig" 2>&1 || echo "  (pkgconfig dir missing!)"
-  echo "-- per-lib pkg-config probe (exactly how configure looks them up) --"
-  for p in x264 x265 vpx dav1d opus vorbis ogg fdk-aac; do
-    if pkg-config --exists "$p" 2>/dev/null; then
-      printf '  OK   %-10s version=%s\n' "$p" "$(pkg-config --modversion "$p" 2>/dev/null)"
-    else
-      printf '  FAIL %-10s (--exists failed)\n' "$p"
-    fi
-  done
-  echo "-- x264 resolved flags (plain and --static) --"
-  echo "  cflags : $(pkg-config --cflags x264 2>&1)"
-  echo "  libs   : $(pkg-config --libs x264 2>&1)"
-  echo "  static : $(pkg-config --static --libs x264 2>&1)"
-  echo "-- full content of every .pc file (what configure actually parses) --"
-  for pc in "$PREFIX"/lib/pkgconfig/*.pc; do
-    [ -f "$pc" ] || continue
-    echo "  ===== $(basename "$pc") ====="
-    sed 's/^/    /' "$pc"
-  done
-  echo "::endgroup::"
-
+  cd "$SRC/ffmpeg"; make distclean >/dev/null 2>&1 || true
+  diag_pkgconfig
   ./configure \
     --prefix="$ART" \
-    --enable-cross-compile \
-    --target-os=darwin \
-    --arch="$ARCH" \
+    --enable-cross-compile --target-os=darwin --arch="$ARCH" --sysroot="$SDKPATH" \
     --cc="$CC" --cxx="$CXX" --ar="$AR" --ranlib="$RANLIB" --strip="$STRIP" \
-    --sysroot="$SDKPATH" \
-    --extra-cflags="$CFLAGS" \
-    --extra-cxxflags="$CXXFLAGS" \
-    --extra-ldflags="$LDFLAGS" \
+    --extra-cflags="$CFLAGS" --extra-cxxflags="$CXXFLAGS" --extra-ldflags="$LDFLAGS" \
     --pkg-config=pkg-config --pkg-config-flags="--static" \
     --enable-gpl --enable-nonfree --enable-version3 \
     --enable-libx264 --enable-libx265 --enable-libvpx --enable-libdav1d \
-    --enable-libopus --enable-libmp3lame --enable-libfdk-aac \
-    --enable-libvorbis \
+    --enable-libopus --enable-libmp3lame --enable-libfdk-aac --enable-libvorbis \
     --enable-videotoolbox --enable-audiotoolbox \
-    --enable-static --disable-shared \
-    --disable-ffplay \
-    --disable-doc --disable-debug
+    --enable-static --disable-shared --disable-ffplay --disable-doc --disable-debug
   make -j"$JOBS"
   make install
 }
 
-# ===========================================================================
-# sign so the binaries run on a jailbroken device
-# ===========================================================================
+# ldid fake-sign with entitlements so the binaries run on a jailbroken device.
 sign_binaries() {
-  echo "==> ldid fake-signing"
+  log "ldid signing"
   cat > "$WORK/ent.plist" <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -443,42 +376,36 @@ sign_binaries() {
 </dict>
 </plist>
 EOF
+  local b
   for b in ffmpeg ffprobe; do
     [ -f "$ART/bin/$b" ] && ldid -S"$WORK/ent.plist" "$ART/bin/$b" && echo "signed $b"
   done
-
-  # --- final binary introspection: prove what we actually produced ----------
-  echo "::group::BINARY introspection (final ffmpeg/ffprobe)"
-  for b in ffmpeg ffprobe; do
-    bin="$ART/bin/$b"
-    if [ ! -f "$bin" ]; then echo "  [MISSING] $bin"; continue; fi
-    echo "  ===== $b ====="
-    echo "  file : $(file "$bin")"
-    echo -n "  lipo : "; lipo -info "$bin" 2>/dev/null || true
-    echo "  Mach-O platform (LC_BUILD_VERSION):"
-    otool -l "$bin" 2>/dev/null | grep -A4 -iE "LC_BUILD_VERSION|LC_VERSION_MIN" | head -8 | sed 's/^/    /'
-    echo "  linked dynamic libraries (otool -L) — should be only iOS system libs:"
-    otool -L "$bin" 2>/dev/null | sed 's/^/    /' | head -40
-    echo "  code signature (ldid -e shows embedded entitlements):"
-    { ldid -e "$bin" 2>/dev/null | head -20; codesign -dv "$bin" 2>&1 | head -8; } | sed 's/^/    /' || true
-    echo "  size : $(ls -lh "$bin" | awk '{print $5}')"
-  done
-  echo "::endgroup::"
 }
 
-# --- order matters (vorbis needs ogg; ffmpeg needs all) --------------------
-# Each build is immediately followed by verify_lib so a macOS-tagged object is
-# caught the instant it is produced, with the offending lib named.
-build_x264;   verify_lib libx264.a
-build_x265;   verify_lib libx265.a
-build_libvpx; verify_lib libvpx.a
-build_dav1d;  verify_lib libdav1d.a
-build_opus;   verify_lib libopus.a
-build_lame;   verify_lib libmp3lame.a
-build_fdkaac; verify_lib libfdk-aac.a
-build_ogg;    verify_lib libogg.a
-build_vorbis; verify_lib libvorbis.a libvorbisenc.a libvorbisfile.a
-build_ffmpeg
-sign_binaries
+# ---------------------------------------------------------------------------
+# main — order matters (vorbis needs ogg; ffmpeg needs all). Each dependency
+# is verified the instant it builds, so a bad object names itself immediately.
+# ---------------------------------------------------------------------------
+main() {
+  mkdir -p "$PREFIX" "$SRC" "$ART/bin"
+  log "FFmpeg $FFMPEG_VERSION | iOS min $IOS_MIN | $JOBS jobs | SDK $SDKPATH"
+  preflight
 
-echo "==> Done. Binaries in $ART/bin"
+  build_x264;   verify_lib libx264.a
+  build_x265;   verify_lib libx265.a
+  build_libvpx; verify_lib libvpx.a
+  build_dav1d;  verify_lib libdav1d.a
+  build_opus;   verify_lib libopus.a
+  build_lame;   verify_lib libmp3lame.a
+  build_fdkaac; verify_lib libfdk-aac.a
+  build_ogg;    verify_lib libogg.a
+  build_vorbis; verify_lib libvorbis.a libvorbisenc.a libvorbisfile.a
+
+  build_ffmpeg
+  sign_binaries
+  introspect_binaries
+
+  log "Done. Binaries in $ART/bin"
+}
+
+main "$@"

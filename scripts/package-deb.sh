@@ -16,7 +16,11 @@
 set -Eeuo pipefail
 
 FFMPEG_VERSION="${1:-8.1.2}"
-DEB_ARCH="${2:-iphoneos-arm64}"
+# NOTE: Cydia/Elucubratus jailbreaks (checkra1n/unc0ver) report 'iphoneos-arm'
+# from `dpkg --print-architecture` even on arm64 devices; Procursus reports
+# 'iphoneos-arm64'/'iphoneos-arm64e'. The binary is arm64 either way — this
+# string only has to match the device's dpkg arch.
+DEB_ARCH="${2:-iphoneos-arm}"
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ART="$ROOT/artifacts"
@@ -35,21 +39,25 @@ for b in ffmpeg ffprobe; do
 done
 
 rm -rf "$STAGE"
-mkdir -p "$STAGE/DEBIAN" "$STAGE/usr/local/bin"
+mkdir -p "$STAGE/DEBIAN" "$STAGE/usr/local/bin" "$STAGE/usr/bin"
 
 install -m 0755 "$ART/bin/ffmpeg"  "$STAGE/usr/local/bin/ffmpeg"
 install -m 0755 "$ART/bin/ffprobe" "$STAGE/usr/local/bin/ffprobe"
+
+# Symlinks in /usr/bin (on PATH) so the bare `ffmpeg`/`ffprobe` commands work.
+# dpkg packages and owns these, so `apt remove` cleans them up too.
+ln -sf /usr/local/bin/ffmpeg  "$STAGE/usr/bin/ffmpeg"
+ln -sf /usr/local/bin/ffprobe "$STAGE/usr/bin/ffprobe"
 
 # Installed-Size is in KiB (dpkg convention).
 size_kib="$(du -sk "$STAGE/usr" | awk '{print $1}')"
 
 cat > "$STAGE/DEBIAN/control" <<EOF
 Package: $PKG
-Name: FFmpeg (static, VideoToolbox)
+Name: FFmpeg
 Version: $FFMPEG_VERSION
 Architecture: $DEB_ARCH
-Maintainer: LiteReplayd <root@localhost>
-Author: FFmpeg developers <https://ffmpeg.org>
+Maintainer: k1tty-xz
 Section: Multimedia
 Priority: optional
 Installed-Size: $size_kib
@@ -57,8 +65,8 @@ Homepage: https://ffmpeg.org
 Description: FFmpeg $FFMPEG_VERSION static build for iOS arm64
  Statically-linked ffmpeg/ffprobe with VideoToolbox hardware encoders
  (hevc_videotoolbox, h264_videotoolbox), plus x264, x265, libvpx, dav1d,
- opus, fdk-aac, mp3lame and vorbis. Installs into /usr/local/bin and does
- not touch the distro "ffmpeg" package or its shared libraries.
+ opus, fdk-aac, mp3lame and vorbis. Binaries live in /usr/local/bin with
+ /usr/bin symlinks for PATH; does not collide with the distro "ffmpeg".
 EOF
 
 echo "-- DEBIAN/control --"

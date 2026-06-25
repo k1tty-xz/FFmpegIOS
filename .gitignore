@@ -10,3 +10,6 @@ artifacts/
 # downloaded build artifacts / local extraction scratch
 _art/
 *.zip
+
+# pasted CI logs / scratch
+log.log

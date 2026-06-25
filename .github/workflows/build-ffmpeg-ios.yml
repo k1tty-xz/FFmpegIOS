@@ -1,24 +1,25 @@
 name: Build FFmpeg for iOS (arm64)
 
-# Cross-compiles a full FFmpeg + ffprobe for jailbroken iOS arm64 on a macOS
-# (Apple Silicon) runner, fake-signs with ldid, and uploads the binaries.
+# Cross-compiles a static FFmpeg + ffprobe for jailbroken iOS arm64 on a macOS
+# (Apple Silicon) runner, ldid-signs the binaries, and packages an installable
+# .deb. The signed binaries, headers/libs, and the .deb are uploaded as an
+# artifact. Trigger manually from the Actions tab.
 on:
   workflow_dispatch:
     inputs:
       ffmpeg_version:
-        description: "FFmpeg release version (tarball from ffmpeg.org/releases)"
+        description: "FFmpeg release version (ffmpeg.org/releases)"
         default: "8.1.2"
       ios_min:
         description: "Minimum iOS deployment target"
         default: "14.0"
       deb_arch:
-        description: "dpkg architecture for the .deb (match device: dpkg --print-architecture)"
-        default: "iphoneos-arm64"
+        description: "dpkg arch — match the device (dpkg --print-architecture)"
+        default: "iphoneos-arm"
 
 jobs:
   build:
-    # macos-14 = Apple Silicon, ships Xcode + the iPhoneOS SDK.
-    runs-on: macos-14
+    runs-on: macos-14            # Apple Silicon; ships Xcode + the iPhoneOS SDK
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
@@ -26,31 +27,27 @@ jobs:
       - name: Show toolchain
         run: |
           xcodebuild -version
-          echo "iPhoneOS SDK: $(xcrun --sdk iphoneos --show-sdk-path)"
           clang --version
+          echo "iPhoneOS SDK: $(xcrun --sdk iphoneos --show-sdk-path)"
 
       - name: Install build tools
         run: |
-          brew update
-          # nasm/yasm: x86 asm (not used for arm64 but configure probes for them)
-          # automake/autoconf/libtool: needed for the libs cloned from git
-          # cmake/meson/ninja: x265 (cmake) and dav1d (meson)
-          # ldid: ad-hoc / entitlement signing so the binary runs on the device
-          # dpkg: build the installable .deb for the jailbroken device
-          brew install nasm yasm automake autoconf libtool cmake meson ninja ldid coreutils pkg-config dpkg
+          # nasm/yasm        : asm assemblers probed by some configure scripts
+          # autoconf/automake/libtool : regenerate ./configure for git sources
+          # cmake/meson/ninja : x265 (cmake) and dav1d (meson)
+          # ldid             : entitlement-sign so binaries run on the device
+          # dpkg             : build the installable .deb
+          brew install nasm yasm automake autoconf libtool cmake meson ninja \
+                       ldid coreutils pkg-config dpkg
 
       - name: Build FFmpeg + dependencies
         run: bash scripts/build-ffmpeg-ios.sh "${{ inputs.ffmpeg_version }}" "${{ inputs.ios_min }}"
 
-      - name: Package .deb for jailbroken iOS
+      - name: Package .deb
         run: bash scripts/package-deb.sh "${{ inputs.ffmpeg_version }}" "${{ inputs.deb_arch }}"
 
-      - name: Report binary info
-        run: |
-          file artifacts/bin/ffmpeg artifacts/bin/ffprobe
-          ls -lh artifacts/bin artifacts/*.deb
-
-      - uses: actions/upload-artifact@v4
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
           name: ffmpeg-${{ inputs.ffmpeg_version }}-ios-arm64
           path: artifacts/**
