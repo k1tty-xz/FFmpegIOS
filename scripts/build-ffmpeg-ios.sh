@@ -92,8 +92,24 @@ preflight() {
   echo "CC version   :"; "$CC" --version | sed 's/^/    /'
   echo "SDKPATH      : $SDKPATH"; [ -d "$SDKPATH" ] && echo "    (exists)" || echo "    (MISSING!)"
   echo "CFLAGS       : $CFLAGS"
+  echo "CXXFLAGS     : $CXXFLAGS"
   echo "LDFLAGS      : $LDFLAGS"
+  echo "ARCH_FLAGS   : $ARCH_FLAGS"
   echo "HOST_TRIPLE  : $HOST_TRIPLE"
+  echo "JOBS         : $JOBS"
+  echo "-- resolved toolchain binaries --"
+  for t in CC CXX AR RANLIB STRIP LD; do echo "  $t = ${!t}"; done
+  echo "-- SDK details --"
+  echo "  iphoneos SDK version : $(xcrun --sdk iphoneos --show-sdk-version 2>/dev/null)"
+  echo "  iphoneos SDK build   : $(xcrun --sdk iphoneos --show-sdk-build-version 2>/dev/null)"
+  echo "-- build-tool versions --"
+  for tool in cmake meson ninja nasm yasm pkg-config ldid otool vtool lipo ar; do
+    if command -v "$tool" >/dev/null 2>&1; then
+      printf '  %-10s %s  (%s)\n' "$tool" "$("$tool" --version 2>/dev/null | head -1)" "$(command -v "$tool")"
+    else
+      printf '  %-10s [NOT FOUND]\n' "$tool"
+    fi
+  done
 
   printf 'int main(void){return 0;}\n' > "$WORK/t.c"
 
@@ -120,6 +136,58 @@ preflight() {
 }
 
 preflight
+
+# ===========================================================================
+# verify_lib — after a library installs, prove its archive is iOS-arm64 with
+# NO macOS-tagged objects. This catches the recurring "built for 'macOS'"
+# asm bug at the SOURCE (right when the lib builds) instead of 9 libraries
+# later in FFmpeg's link test. Non-fatal: logs loudly, never aborts the run.
+#
+# Platform is read from each object's Mach-O load commands:
+#   LC_BUILD_VERSION 'platform' : 1=macOS 2=iOS 3=tvOS 7=iOS-sim ...
+#   (older objects)             : LC_VERSION_MIN_IPHONEOS / _MACOSX
+# ===========================================================================
+verify_lib() {  # archive-name [archive-name ...]
+  echo "::group::VERIFY platform: $*"
+  local a path tmp obj total ios macos other plat badlist
+  for a in "$@"; do
+    path="$PREFIX/lib/$a"
+    if [ ! -f "$path" ]; then echo "  [MISSING] $path"; continue; fi
+    echo "  --- $a ---"
+    echo -n "    lipo : "; lipo -info "$path" 2>/dev/null || file "$path"
+    tmp="$(mktemp -d)"
+    ( cd "$tmp" && ar x "$path" 2>/dev/null ) || true
+    total=0; ios=0; macos=0; other=0; badlist=""
+    for obj in "$tmp"/*.o; do
+      [ -f "$obj" ] || continue
+      total=$((total+1))
+      plat="$(otool -l "$obj" 2>/dev/null | awk '
+        /LC_BUILD_VERSION/{b=1}
+        b&&/platform/{print $2; exit}
+        /LC_VERSION_MIN_IPHONEOS/{print "ios"; exit}
+        /LC_VERSION_MIN_MACOSX/{print "macos"; exit}')"
+      case "$plat" in
+        2|IOS|ios)        ios=$((ios+1));;
+        1|MACOS|macos)    macos=$((macos+1)); badlist="$badlist $(basename "$obj")";;
+        *)                other=$((other+1));;
+      esac
+    done
+    echo "    objects: total=$total  ios=$ios  macos=$macos  other/unknown=$other"
+    if [ "$macos" -gt 0 ]; then
+      echo "    [!! FAIL] $macos macOS-tagged object(s) — these WILL break the iOS link:"
+      printf '%s\n' $badlist | sed '/^$/d' | head -15 | sed 's/^/        /'
+      echo "        (showing up to 15; sample LC_BUILD_VERSION below)"
+      otool -l "$tmp/$(printf '%s\n' $badlist | sed '/^$/d' | head -1)" 2>/dev/null \
+        | grep -A4 -iE "LC_BUILD_VERSION|LC_VERSION_MIN" | head -10 | sed 's/^/        /'
+    elif [ "$total" -eq 0 ]; then
+      echo "    [?? WARN] no objects extracted — could not verify"
+    else
+      echo "    [OK] all objects iOS-tagged"
+    fi
+    rm -rf "$tmp"
+  done
+  echo "::endgroup::"
+}
 
 # --- helpers ---------------------------------------------------------------
 fetch_git() {  # name url [ref]
@@ -328,6 +396,12 @@ build_ffmpeg() {
   echo "  cflags : $(pkg-config --cflags x264 2>&1)"
   echo "  libs   : $(pkg-config --libs x264 2>&1)"
   echo "  static : $(pkg-config --static --libs x264 2>&1)"
+  echo "-- full content of every .pc file (what configure actually parses) --"
+  for pc in "$PREFIX"/lib/pkgconfig/*.pc; do
+    [ -f "$pc" ] || continue
+    echo "  ===== $(basename "$pc") ====="
+    sed 's/^/    /' "$pc"
+  done
   echo "::endgroup::"
 
   ./configure \
@@ -372,18 +446,38 @@ EOF
   for b in ffmpeg ffprobe; do
     [ -f "$ART/bin/$b" ] && ldid -S"$WORK/ent.plist" "$ART/bin/$b" && echo "signed $b"
   done
+
+  # --- final binary introspection: prove what we actually produced ----------
+  echo "::group::BINARY introspection (final ffmpeg/ffprobe)"
+  for b in ffmpeg ffprobe; do
+    bin="$ART/bin/$b"
+    if [ ! -f "$bin" ]; then echo "  [MISSING] $bin"; continue; fi
+    echo "  ===== $b ====="
+    echo "  file : $(file "$bin")"
+    echo -n "  lipo : "; lipo -info "$bin" 2>/dev/null || true
+    echo "  Mach-O platform (LC_BUILD_VERSION):"
+    otool -l "$bin" 2>/dev/null | grep -A4 -iE "LC_BUILD_VERSION|LC_VERSION_MIN" | head -8 | sed 's/^/    /'
+    echo "  linked dynamic libraries (otool -L) — should be only iOS system libs:"
+    otool -L "$bin" 2>/dev/null | sed 's/^/    /' | head -40
+    echo "  code signature (ldid -e shows embedded entitlements):"
+    { ldid -e "$bin" 2>/dev/null | head -20; codesign -dv "$bin" 2>&1 | head -8; } | sed 's/^/    /' || true
+    echo "  size : $(ls -lh "$bin" | awk '{print $5}')"
+  done
+  echo "::endgroup::"
 }
 
 # --- order matters (vorbis needs ogg; ffmpeg needs all) --------------------
-build_x264
-build_x265
-build_libvpx
-build_dav1d
-build_opus
-build_lame
-build_fdkaac
-build_ogg
-build_vorbis
+# Each build is immediately followed by verify_lib so a macOS-tagged object is
+# caught the instant it is produced, with the offending lib named.
+build_x264;   verify_lib libx264.a
+build_x265;   verify_lib libx265.a
+build_libvpx; verify_lib libvpx.a
+build_dav1d;  verify_lib libdav1d.a
+build_opus;   verify_lib libopus.a
+build_lame;   verify_lib libmp3lame.a
+build_fdkaac; verify_lib libfdk-aac.a
+build_ogg;    verify_lib libogg.a
+build_vorbis; verify_lib libvorbis.a libvorbisenc.a libvorbisfile.a
 build_ffmpeg
 sign_binaries
 
