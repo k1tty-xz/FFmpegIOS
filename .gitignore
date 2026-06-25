@@ -1,0 +1,8 @@
+# build outputs / scratch
+build/
+artifacts/
+*.tar.xz
+*.tar.gz
+
+# local FFmpeg source used only for introspecting ./configure options
+.ffsrc/
