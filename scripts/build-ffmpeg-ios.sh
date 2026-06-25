@@ -250,7 +250,13 @@ build_ogg() {
 build_vorbis() {
   echo "==> libvorbis"
   fetch_git vorbis https://github.com/xiph/vorbis.git
-  cd "$SRC/vorbis"; [ -x configure ] || ./autogen.sh
+  cd "$SRC/vorbis"
+  # Generate ./configure (autoreconf, without running it).
+  autoreconf -fi
+  # libvorbis's configure injects the legacy Apple linker flag
+  # '-force_cpusubtype_ALL' for any *-darwin* host; the modern ld (Xcode 15)
+  # rejects it and the test_sharedbook link fails. Strip it out. (BSD sed.)
+  sed -i '' 's/-force_cpusubtype_ALL//g' configure
   ./configure --prefix="$PREFIX" --host="$HOST_TRIPLE" \
     --enable-static --disable-shared --with-ogg="$PREFIX"
   make -j"$JOBS" && make install
