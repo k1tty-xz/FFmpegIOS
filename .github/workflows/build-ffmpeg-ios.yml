@@ -11,6 +11,9 @@ on:
       ios_min:
         description: "Minimum iOS deployment target"
         default: "14.0"
+      deb_arch:
+        description: "dpkg architecture for the .deb (match device: dpkg --print-architecture)"
+        default: "iphoneos-arm64"
 
 jobs:
   build:
@@ -33,15 +36,19 @@ jobs:
           # automake/autoconf/libtool: needed for the libs cloned from git
           # cmake/meson/ninja: x265 (cmake) and dav1d (meson)
           # ldid: ad-hoc / entitlement signing so the binary runs on the device
-          brew install nasm yasm automake autoconf libtool cmake meson ninja ldid coreutils pkg-config
+          # dpkg: build the installable .deb for the jailbroken device
+          brew install nasm yasm automake autoconf libtool cmake meson ninja ldid coreutils pkg-config dpkg
 
       - name: Build FFmpeg + dependencies
         run: bash scripts/build-ffmpeg-ios.sh "${{ inputs.ffmpeg_version }}" "${{ inputs.ios_min }}"
 
+      - name: Package .deb for jailbroken iOS
+        run: bash scripts/package-deb.sh "${{ inputs.ffmpeg_version }}" "${{ inputs.deb_arch }}"
+
       - name: Report binary info
         run: |
           file artifacts/bin/ffmpeg artifacts/bin/ffprobe
-          ls -lh artifacts/bin
+          ls -lh artifacts/bin artifacts/*.deb
 
       - uses: actions/upload-artifact@v4
         with:
