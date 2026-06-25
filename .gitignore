@@ -6,3 +6,7 @@ artifacts/
 
 # local FFmpeg source used only for introspecting ./configure options
 .ffsrc/
+
+# downloaded build artifacts / local extraction scratch
+_art/
+*.zip
