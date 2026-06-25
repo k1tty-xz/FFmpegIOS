@@ -18,7 +18,9 @@
 # (libaom/SVT-AV1) are deliberately left out to keep build time + failure
 # surface sane; each is a mechanical add following the same helpers below.
 # ===========================================================================
-set -euo pipefail
+# -E (errtrace): make the ERR trap fire for failures INSIDE functions too,
+# otherwise dump_logs never runs when a build_* function fails.
+set -Eeuo pipefail
 
 FFMPEG_VERSION="${1:-8.1.2}"
 IOS_MIN="${2:-14.0}"
@@ -270,6 +272,28 @@ build_ffmpeg() {
   fetch_tar ffmpeg "https://ffmpeg.org/releases/ffmpeg-$FFMPEG_VERSION.tar.xz"
   cd "$SRC/ffmpeg"
   make distclean >/dev/null 2>&1 || true
+
+  # --- pkg-config diagnostics: prove what FFmpeg's configure will see --------
+  echo "::group::PKG-CONFIG diagnostics (pre-FFmpeg-configure)"
+  echo "which pkg-config : $(command -v pkg-config)"
+  echo "PKG_CONFIG_LIBDIR: ${PKG_CONFIG_LIBDIR:-<unset>}"
+  echo "PKG_CONFIG_PATH  : ${PKG_CONFIG_PATH:-<unset>}"
+  echo "-- .pc files actually present in prefix --"
+  ls -la "$PREFIX/lib/pkgconfig" 2>&1 || echo "  (pkgconfig dir missing!)"
+  echo "-- per-lib pkg-config probe (exactly how configure looks them up) --"
+  for p in x264 x265 vpx dav1d opus vorbis ogg fdk-aac; do
+    if pkg-config --exists "$p" 2>/dev/null; then
+      printf '  OK   %-10s version=%s\n' "$p" "$(pkg-config --modversion "$p" 2>/dev/null)"
+    else
+      printf '  FAIL %-10s (--exists failed)\n' "$p"
+    fi
+  done
+  echo "-- x264 resolved flags (plain and --static) --"
+  echo "  cflags : $(pkg-config --cflags x264 2>&1)"
+  echo "  libs   : $(pkg-config --libs x264 2>&1)"
+  echo "  static : $(pkg-config --static --libs x264 2>&1)"
+  echo "::endgroup::"
+
   ./configure \
     --prefix="$ART" \
     --enable-cross-compile \
