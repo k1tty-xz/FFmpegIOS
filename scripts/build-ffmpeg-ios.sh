@@ -57,6 +57,67 @@ HOST_TRIPLE="aarch64-apple-darwin"
 echo "==> FFmpeg $FFMPEG_VERSION | iOS min $IOS_MIN | $JOBS jobs"
 echo "==> SDK: $SDKPATH"
 
+# ===========================================================================
+# DIAGNOSTICS — gather facts, do not guess.
+# On any error, dump every build system's log so the real failing command is
+# visible in CI output.
+# ===========================================================================
+dump_logs() {
+  echo "::group::AUTODUMP: build logs on error"
+  for f in \
+    "$SRC/x264/config.log" \
+    "$SRC/libvpx/config.log" \
+    "$SRC/ffmpeg/ffbuild/config.log" \
+    "$SRC/dav1d/build-ios/meson-logs/meson-log.txt" \
+    "$SRC/x265/build-ios/CMakeFiles/CMakeError.log" \
+    "$SRC/x265/build-ios/CMakeFiles/CMakeOutput.log"; do
+    if [ -f "$f" ]; then
+      echo "===================== $f (tail -120) ====================="
+      tail -120 "$f"
+      echo
+    fi
+  done
+  echo "::endgroup::"
+}
+trap dump_logs ERR
+
+preflight() {
+  echo "::group::PREFLIGHT: toolchain facts"
+  echo "uname        : $(uname -a)"
+  echo "host clang   :"; clang --version | sed 's/^/    /'
+  echo "target CC    : $CC"
+  echo "CC version   :"; "$CC" --version | sed 's/^/    /'
+  echo "SDKPATH      : $SDKPATH"; [ -d "$SDKPATH" ] && echo "    (exists)" || echo "    (MISSING!)"
+  echo "CFLAGS       : $CFLAGS"
+  echo "LDFLAGS      : $LDFLAGS"
+  echo "HOST_TRIPLE  : $HOST_TRIPLE"
+
+  printf 'int main(void){return 0;}\n' > "$WORK/t.c"
+
+  echo "-- TEST 1: compile+link with target toolchain (verbose) --"
+  if "$CC" -v $CFLAGS $LDFLAGS "$WORK/t.c" -o "$WORK/t.out" 2> "$WORK/t.log"; then
+    echo "[TEST1 = PASS] compile+link succeeded"
+    file "$WORK/t.out"
+  else
+    echo "[TEST1 = FAIL] compile+link failed — full clang output below:"
+    cat "$WORK/t.log"
+  fi
+
+  echo "-- TEST 2: can the produced iOS binary RUN on this macOS host? --"
+  if [ -f "$WORK/t.out" ]; then
+    if "$WORK/t.out" 2> "$WORK/t.run.log"; then
+      echo "[TEST2 = RUNS] binary executed on host (=> host==target, x264 will think NATIVE)"
+    else
+      echo "[TEST2 = CANNOT RUN] rc=$? — expected for a cross build."
+      echo "    => any configure that RUNS its test binary will wrongly report 'no working compiler'."
+      cat "$WORK/t.run.log" 2>/dev/null || true
+    fi
+  fi
+  echo "::endgroup::"
+}
+
+preflight
+
 # --- helpers ---------------------------------------------------------------
 fetch_git() {  # name url [ref]
   local name="$1" url="$2" ref="${3:-}"

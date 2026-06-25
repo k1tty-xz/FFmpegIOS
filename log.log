@@ -1,74 +1,428 @@
-=== replayd encoder introspection ===
-pid: 3767 arch: arm64
-[+] hooked VTCompressionSessionCreate
-[+] hooked VTSessionSetProperty
-[+] hooked VTSessionSetProperties
-[+] hooked AVAssetWriterInput init
-[+] hooked AVAssetWriterInput init (sourceFormatHint variant)
-[+] hooked AVAssetWriter init
-[*] ready — start a screen recording now.
-[Remote::replayd ]-> ---------------------------------------------------------------
-[AVAssetWriter init] URL: file:///private/var/mobile/Library/ReplayKit/ScreenRecording_06-25-2026%2022-24-41_1.mp4
-  fileType: public.mpeg-4
----------------------------------------------------------------
-[AVAssetWriterInput init] mediaType: vide
-  outputSettings: {
-    AVVideoCodecKey = avc1;
-    AVVideoCompressionPropertiesKey =     {
-        AverageBitRate = 16915046;
-        ExpectedFrameRate = 60;
-        MaxKeyFrameInterval = 60;
-        ProfileLevel = "H264_High_AutoLevel";
-    };
-    AVVideoHeightKey = 1792;
-    AVVideoWidthKey = 828;
-}
----------------------------------------------------------------
-[AVAssetWriterInput init+hint] mediaType: vide
-  outputSettings: {
-    AVVideoCodecKey = avc1;
-    AVVideoCompressionPropertiesKey =     {
-        AverageBitRate = 16915046;
-        ExpectedFrameRate = 60;
-        MaxKeyFrameInterval = 60;
-        ProfileLevel = "H264_High_AutoLevel";
-    };
-    AVVideoHeightKey = 1792;
-    AVVideoWidthKey = 828;
-}
----------------------------------------------------------------
-[AVAssetWriterInput init] mediaType: soun
-  outputSettings: {
-    AVChannelLayoutKey = {length = 32, bytes = 0x02006500 00000000 00000000 00000000 ... 00000000 00000000 };
-    AVEncoderBitRateKey = 128000;
-    AVFormatIDKey = 1633772320;
-    AVNumberOfChannelsKey = 2;
-    AVSampleRateKey = 44100;
-}
----------------------------------------------------------------
-[AVAssetWriterInput init+hint] mediaType: soun
-  outputSettings: {
-    AVChannelLayoutKey = {length = 32, bytes = 0x02006500 00000000 00000000 00000000 ... 00000000 00000000 };
-    AVEncoderBitRateKey = 128000;
-    AVFormatIDKey = 1633772320;
-    AVNumberOfChannelsKey = 2;
-    AVSampleRateKey = 44100;
-}
----------------------------------------------------------------
-[AVAssetWriterInput init] mediaType: soun
-  outputSettings: {
-    AVChannelLayoutKey = {length = 32, bytes = 0x02006500 00000000 00000000 00000000 ... 00000000 00000000 };
-    AVEncoderBitRateKey = 128000;
-    AVFormatIDKey = 1633772320;
-    AVNumberOfChannelsKey = 2;
-    AVSampleRateKey = 44100;
-}
----------------------------------------------------------------
-[AVAssetWriterInput init+hint] mediaType: soun
-  outputSettings: {
-    AVChannelLayoutKey = {length = 32, bytes = 0x02006500 00000000 00000000 00000000 ... 00000000 00000000 };
-    AVEncoderBitRateKey = 128000;
-    AVFormatIDKey = 1633772320;
-    AVNumberOfChannelsKey = 2;
-    AVSampleRateKey = 44100;
-}
+2026-06-25T21:00:24.3817940Z Current runner version: '2.335.1'
+2026-06-25T21:00:24.3830480Z ##[group]Runner Image Provisioner
+2026-06-25T21:00:24.3830940Z Hosted Compute Agent
+2026-06-25T21:00:24.3831270Z Version: 20260527.539
+2026-06-25T21:00:24.3831630Z Commit: a891dd388383b896fa6ac04a82c0b75cec981078
+2026-06-25T21:00:24.3832050Z Build Date: 2026-05-27T21:39:57Z
+2026-06-25T21:00:24.3832450Z Worker ID: {7de195ed-e642-4aa8-bf9d-e077b0c8dc6e}
+2026-06-25T21:00:24.3832870Z Azure Region: westus
+2026-06-25T21:00:24.3833200Z ##[endgroup]
+2026-06-25T21:00:24.3833920Z ##[group]Operating System
+2026-06-25T21:00:24.3834260Z macOS
+2026-06-25T21:00:24.3834560Z 14.8.7
+2026-06-25T21:00:24.3834860Z 23J520
+2026-06-25T21:00:24.3835170Z ##[endgroup]
+2026-06-25T21:00:24.3835480Z ##[group]Runner Image
+2026-06-25T21:00:24.3835820Z Image: macos-14-arm64
+2026-06-25T21:00:24.3836150Z Version: 20260608.0118.1
+2026-06-25T21:00:24.3836870Z Included Software: https://github.com/actions/runner-images/blob/macos-14-arm64/20260608.0118/images/macos/macos-14-arm64-Readme.md
+2026-06-25T21:00:24.3837820Z Image Release: https://github.com/actions/runner-images/releases/tag/macos-14-arm64%2F20260608.0118
+2026-06-25T21:00:24.3838410Z ##[endgroup]
+2026-06-25T21:00:24.3839100Z ##[group]GITHUB_TOKEN Permissions
+2026-06-25T21:00:24.3839950Z Contents: read
+2026-06-25T21:00:24.3840270Z Metadata: read
+2026-06-25T21:00:24.3840590Z Packages: read
+2026-06-25T21:00:24.3840910Z ##[endgroup]
+2026-06-25T21:00:24.3842030Z Secret source: Actions
+2026-06-25T21:00:24.3842430Z Prepare workflow directory
+2026-06-25T21:00:24.4047000Z Prepare all required actions
+2026-06-25T21:00:24.4073820Z Getting action download info
+2026-06-25T21:00:24.6646630Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2026-06-25T21:00:24.9085700Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-06-25T21:00:25.1063570Z Complete job name: build
+2026-06-25T21:00:25.1440760Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-06-25T21:00:25.1446600Z ##[group]Run actions/checkout@v4
+2026-06-25T21:00:25.1447050Z with:
+2026-06-25T21:00:25.1447360Z   repository: k1tty-xz/LiteReplayd
+2026-06-25T21:00:25.1450180Z   token: ***
+2026-06-25T21:00:25.1450470Z   ssh-strict: true
+2026-06-25T21:00:25.1450770Z   ssh-user: git
+2026-06-25T21:00:25.1451070Z   persist-credentials: true
+2026-06-25T21:00:25.1451400Z   clean: true
+2026-06-25T21:00:25.1451710Z   sparse-checkout-cone-mode: true
+2026-06-25T21:00:25.1452070Z   fetch-depth: 1
+2026-06-25T21:00:25.1452360Z   fetch-tags: false
+2026-06-25T21:00:25.1452660Z   show-progress: true
+2026-06-25T21:00:25.1452960Z   lfs: false
+2026-06-25T21:00:25.1453270Z   submodules: false
+2026-06-25T21:00:25.1453580Z   set-safe-directory: true
+2026-06-25T21:00:25.1454000Z ##[endgroup]
+2026-06-25T21:00:25.4637050Z Syncing repository: k1tty-xz/LiteReplayd
+2026-06-25T21:00:25.4638390Z ##[group]Getting Git version info
+2026-06-25T21:00:25.4639010Z Working directory is '/Users/runner/work/LiteReplayd/LiteReplayd'
+2026-06-25T21:00:25.4639870Z [command]/opt/homebrew/bin/git version
+2026-06-25T21:00:25.4847000Z git version 2.54.0
+2026-06-25T21:00:25.4857080Z ##[endgroup]
+2026-06-25T21:00:25.4864990Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/ed2933ed-d737-421d-b23c-35385567d8f6/.gitconfig'
+2026-06-25T21:00:25.4870670Z Temporarily overriding HOME='/Users/runner/work/_temp/ed2933ed-d737-421d-b23c-35385567d8f6' before making global git config changes
+2026-06-25T21:00:25.4871970Z Adding repository directory to the temporary git global config as a safe directory
+2026-06-25T21:00:25.4873870Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/LiteReplayd/LiteReplayd
+2026-06-25T21:00:25.4955870Z Deleting the contents of '/Users/runner/work/LiteReplayd/LiteReplayd'
+2026-06-25T21:00:25.4958130Z ##[group]Initializing the repository
+2026-06-25T21:00:25.4961130Z [command]/opt/homebrew/bin/git init /Users/runner/work/LiteReplayd/LiteReplayd
+2026-06-25T21:00:25.5131400Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-06-25T21:00:25.5132320Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-06-25T21:00:25.5133180Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-06-25T21:00:25.5133820Z hint: call:
+2026-06-25T21:00:25.5134170Z hint:
+2026-06-25T21:00:25.5134700Z hint: 	git config --global init.defaultBranch <name>
+2026-06-25T21:00:25.5135200Z hint:
+2026-06-25T21:00:25.5135690Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-06-25T21:00:25.5136480Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-06-25T21:00:25.5137130Z hint:
+2026-06-25T21:00:25.5137490Z hint: 	git branch -m <name>
+2026-06-25T21:00:25.5137920Z hint:
+2026-06-25T21:00:25.5138470Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-06-25T21:00:25.5139300Z Initialized empty Git repository in /Users/runner/work/LiteReplayd/LiteReplayd/.git/
+2026-06-25T21:00:25.5140920Z [command]/opt/homebrew/bin/git remote add origin https://github.com/k1tty-xz/LiteReplayd
+2026-06-25T21:00:25.5187810Z ##[endgroup]
+2026-06-25T21:00:25.5188510Z ##[group]Disabling automatic garbage collection
+2026-06-25T21:00:25.5189820Z [command]/opt/homebrew/bin/git config --local gc.auto 0
+2026-06-25T21:00:25.5233600Z ##[endgroup]
+2026-06-25T21:00:25.5235080Z ##[group]Setting up auth
+2026-06-25T21:00:25.5237280Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-06-25T21:00:25.5278560Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-06-25T21:00:25.6006530Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-06-25T21:00:25.6076690Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-06-25T21:00:25.6506760Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-06-25T21:00:25.6543810Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-06-25T21:00:25.7101570Z [command]/opt/homebrew/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-06-25T21:00:25.7189850Z ##[endgroup]
+2026-06-25T21:00:25.7190760Z ##[group]Fetching the repository
+2026-06-25T21:00:25.7195400Z [command]/opt/homebrew/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +d38873a2297edff42b750347da1a4e04c3b10b7c:refs/remotes/origin/main
+2026-06-25T21:00:26.3797520Z From https://github.com/k1tty-xz/LiteReplayd
+2026-06-25T21:00:26.3798780Z  * [new ref]         d38873a2297edff42b750347da1a4e04c3b10b7c -> origin/main
+2026-06-25T21:00:26.3852220Z ##[endgroup]
+2026-06-25T21:00:26.3853110Z ##[group]Determining the checkout info
+2026-06-25T21:00:26.3854050Z ##[endgroup]
+2026-06-25T21:00:26.3854610Z [command]/opt/homebrew/bin/git sparse-checkout disable
+2026-06-25T21:00:26.3903730Z [command]/opt/homebrew/bin/git config --local --unset-all extensions.worktreeConfig
+2026-06-25T21:00:26.3939930Z ##[group]Checking out the ref
+2026-06-25T21:00:26.3940950Z [command]/opt/homebrew/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-06-25T21:00:26.4036520Z Switched to a new branch 'main'
+2026-06-25T21:00:26.4043810Z branch 'main' set up to track 'origin/main'.
+2026-06-25T21:00:26.4049150Z ##[endgroup]
+2026-06-25T21:00:26.4103330Z [command]/opt/homebrew/bin/git log -1 --format=%H
+2026-06-25T21:00:26.4145810Z d38873a2297edff42b750347da1a4e04c3b10b7c
+2026-06-25T21:00:26.4305150Z ##[group]Run xcodebuild -version
+2026-06-25T21:00:26.4306140Z [36;1mxcodebuild -version[0m
+2026-06-25T21:00:26.4307260Z [36;1mecho "iPhoneOS SDK: $(xcrun --sdk iphoneos --show-sdk-path)"[0m
+2026-06-25T21:00:26.4308480Z [36;1mclang --version[0m
+2026-06-25T21:00:26.4364030Z shell: /bin/bash -e {0}
+2026-06-25T21:00:26.4364790Z ##[endgroup]
+2026-06-25T21:00:26.6094590Z Xcode 15.4
+2026-06-25T21:00:26.6148720Z Build version 15F31d
+2026-06-25T21:00:27.5830490Z iPhoneOS SDK: /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.5.sdk
+2026-06-25T21:00:28.0414680Z Apple clang version 15.0.0 (clang-1500.3.9.4)
+2026-06-25T21:00:28.0415030Z Target: arm64-apple-darwin23.6.0
+2026-06-25T21:00:28.0415280Z Thread model: posix
+2026-06-25T21:00:28.0449310Z InstalledDir: /Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin
+2026-06-25T21:00:28.0478250Z ##[group]Run brew update
+2026-06-25T21:00:28.0478480Z [36;1mbrew update[0m
+2026-06-25T21:00:28.0478780Z [36;1m# nasm/yasm: x86 asm (not used for arm64 but configure probes for them)[0m
+2026-06-25T21:00:28.0479180Z [36;1m# automake/autoconf/libtool: needed for the libs cloned from git[0m
+2026-06-25T21:00:28.0479550Z [36;1m# cmake/meson/ninja: x265 (cmake) and dav1d (meson)[0m
+2026-06-25T21:00:28.0479900Z [36;1m# ldid: ad-hoc / entitlement signing so the binary runs on the device[0m
+2026-06-25T21:00:28.0480380Z [36;1mbrew install nasm yasm automake autoconf libtool cmake meson ninja ldid coreutils pkg-config[0m
+2026-06-25T21:00:28.0527640Z shell: /bin/bash -e {0}
+2026-06-25T21:00:28.0527840Z ##[endgroup]
+2026-06-25T21:00:29.1797870Z [34m==>[0m [1mUpdating Homebrew...[0m
+2026-06-25T21:00:44.4794140Z To restore the stashed changes to /opt/homebrew/Library/Taps/homebrew/homebrew-core, run:
+2026-06-25T21:00:44.4803870Z   cd /opt/homebrew/Library/Taps/homebrew/homebrew-core && git stash pop
+2026-06-25T21:00:47.2952870Z ✔︎ JSON API packages.arm64_sonoma.jws.json
+2026-06-25T21:00:47.5930050Z [34m==>[0m [1mHomebrew's analytics have entirely moved to our InfluxDB instance in the EU.[0m
+2026-06-25T21:00:47.5939040Z We gather less data than before and have destroyed all Google Analytics data:
+2026-06-25T21:00:47.5961490Z   [4mhttps://docs.brew.sh/Analytics[24m[0m
+2026-06-25T21:00:47.5968800Z Please reconsider re-enabling analytics to help our volunteer maintainers with:
+2026-06-25T21:00:47.5998220Z   brew analytics on
+2026-06-25T21:00:47.6208350Z [34m==>[0m [1mHomebrew is run entirely by unpaid volunteers. Please consider donating:[0m
+2026-06-25T21:00:47.6220460Z   [4mhttps://github.com/Homebrew/brew#donations[24m
+2026-06-25T21:00:47.6248030Z 
+2026-06-25T21:00:48.1311640Z Updated 5 taps (hashicorp/tap, azure/bicep, aws/tap, homebrew/core and homebrew/cask).
+2026-06-25T21:00:48.1324140Z [34m==>[0m [1mNew Formulae[0m
+2026-06-25T21:00:48.4798480Z actions-languageserver: Language server for GitHub Actions YAML files
+2026-06-25T21:00:48.4899580Z asccli: App Store Connect CLI to manage apps, versions, and screenshots
+2026-06-25T21:00:48.4900240Z avisynthplus: Improved version of the AviSynth frameserver
+2026-06-25T21:00:48.4932970Z beets: Music library manager and tagger
+2026-06-25T21:00:48.4942030Z bttf: CLI tool for datetime arithmetic, parsing, formatting and more
+2026-06-25T21:00:48.4942680Z buffa: Pure-Rust Protocol Buffers implementation with editions support
+2026-06-25T21:00:48.4943410Z civetweb: C/C++ embeddable web server with optional CGI, SSL and Lua support
+2026-06-25T21:00:48.4961990Z coacd: Approximate convex decomposition for 3D meshes with collision-aware concavity
+2026-06-25T21:00:48.4962760Z concord: Terminal user interface client for Discord
+2026-06-25T21:00:48.4983570Z container-use: Dev envs for coding agents. Run multiple agents safely with your stack
+2026-06-25T21:00:48.4997100Z container2wasm: Container to WASM converter
+2026-06-25T21:00:48.5003320Z cyclonedx-cli: Tool for analysis and manipulation of CycloneDX SBOMs
+2026-06-25T21:00:48.5003750Z dbx-cli: Command-line interface for DBX database connections, schema, and safe queries
+2026-06-25T21:00:48.5004150Z dbxcli: Command-line tool for Dropbox users and team admins
+2026-06-25T21:00:48.5004500Z depsguard: Harden package manager configs against supply chain attacks
+2026-06-25T21:00:48.5005130Z draw-things-cli: Local inference and LoRA training CLI for Draw Things
+2026-06-25T21:00:48.5005510Z eas-cli: Command-line tool for working with Expo Application Services
+2026-06-25T21:00:48.5005900Z fakecloud: Free, open-source local AWS cloud emulator for integration testing
+2026-06-25T21:00:48.5006220Z gcc@15: GNU compiler collection
+2026-06-25T21:00:48.5006480Z gnhf: Autonomous agent orchestrator for long-running coding tasks
+2026-06-25T21:00:48.5006750Z hashicorp/tap/tfctl
+2026-06-25T21:00:48.5007020Z ip2location: C library and CLI to geolocate IP addresses
+2026-06-25T21:00:48.5007960Z isponsorblocktv: SponsorBlock client for all YouTube TV clients
+2026-06-25T21:00:48.5008440Z just-lsp: Language server for just
+2026-06-25T21:00:48.5008730Z jwt-ui: TUI for decoding and encoding JWT tokens
+2026-06-25T21:00:48.5009150Z kdash: Simple and fast dashboard for Kubernetes
+2026-06-25T21:00:48.5009440Z keyd: Key remapping daemon for Linux
+2026-06-25T21:00:48.5009880Z kubectl-explore: Better kubectl explain with the fuzzy finder
+2026-06-25T21:00:48.5010340Z libcext: C utility library for Common Pipeline Library (CPL)
+2026-06-25T21:00:48.5010690Z liquidsoap: Audio and video streaming language
+2026-06-25T21:00:48.5011110Z md-tui: Markdown renderer in the terminal written in rust
+2026-06-25T21:00:48.5011410Z merman-cli: Mermaid.js, but headless, in Rust
+2026-06-25T21:00:48.5011780Z mimo-code: AI coding agent with cross-session memory
+2026-06-25T21:00:48.5012140Z minibwa: Successor of BWA-MEM for short-read alignment
+2026-06-25T21:00:48.5012650Z msgvault: Archive a lifetime of email and chat with offline search and analytics
+2026-06-25T21:00:48.5013110Z netwatch: Cross-platform realtime network diagnostics TUI
+2026-06-25T21:00:48.5013530Z nvi2: Multibyte fork of the nvi editor for BSD
+2026-06-25T21:00:48.5013970Z officecli: Read, edit, and automate Office documents (.docx, .xlsx, .pptx)
+2026-06-25T21:00:48.5014450Z openturns: Probabilistic modelling and uncertainty quantification library
+2026-06-25T21:00:48.5014940Z pdf.tocgen: CLI toolset to generate table of contents for PDF files automatically
+2026-06-25T21:00:48.5015350Z pkgsite: Documentation server for Go packages
+2026-06-25T21:00:48.5015920Z poppler-qt6: PDF rendering library (based on the xpdf-3.0 code base)
+2026-06-25T21:00:48.5016290Z proton-pass-cli: Command-line interface for Proton Pass
+2026-06-25T21:00:48.5016610Z pup: CLI companion with 200+ commands across 33+ Datadog products
+2026-06-25T21:00:48.5017090Z pv-migrate: CLI tool to migrate or backup/restore Kubernetes persistent volumes
+2026-06-25T21:00:48.5017450Z pypy3.11: Implementation of Python 3 in Python
+2026-06-25T21:00:48.5017720Z redli: Humane alternative to redis-cli with TLS support
+2026-06-25T21:00:48.5018020Z safestringlib: Safe string operations and memory routines
+2026-06-25T21:00:48.5018320Z slint-compiler: Compiler for the Slint UI markup language
+2026-06-25T21:00:48.5018650Z socktainer: Docker-compatible REST API on top of Apple container
+2026-06-25T21:00:48.5019060Z speech: On-device speech toolkit for Apple Silicon: ASR, TTS, VAD, diarization
+2026-06-25T21:00:48.5019480Z splitrail: Real-time token usage tracker and cost monitor for CLI coding agents
+2026-06-25T21:00:48.5019960Z swgp-go: Simple WireGuard proxy with minimal overhead for WireGuard traffic
+2026-06-25T21:00:48.5020350Z syswatch: Cross-platform system diagnostics TUI
+2026-06-25T21:00:48.5020720Z taproom: Interactive TUI for Homebrew
+2026-06-25T21:00:48.5021020Z tirith: Detect terminal injection, homograph, and pipe-to-shell attacks
+2026-06-25T21:00:48.5021570Z ttl: Modern traceroute/mtr-style TUI with hop stats and ASN/geo enrichment
+2026-06-25T21:00:48.5022270Z tubeup: Use yt-dlp to download video/metadata and upload to the Internet Archive
+2026-06-25T21:00:48.5022700Z tuxedo: Fast, keyboard-driven terminal UI for todo.txt
+2026-06-25T21:00:48.5023140Z unuran: UNU.RAN - Universal Non-Uniform RANdom number generator
+2026-06-25T21:00:48.5023640Z vdt: Math library of fast, approximate and vectorisable trascendental functions
+2026-06-25T21:00:48.5024070Z vulcain: Fast and idiomatic client-driven REST APIs
+2026-06-25T21:00:48.5024880Z wx-cli: WeChat 4.x local data CLI with daemon architecture
+2026-06-25T21:00:48.5025500Z zot: Lightweight coding agent harness written in Go
+2026-06-25T21:00:48.5026110Z [34m==>[0m [1mNew Casks[0m
+2026-06-25T21:00:48.7496450Z 8bitdo-firmware-updater: Firmware updater for 8BitDo controllers
+2026-06-25T21:00:48.7497220Z altersend: Secure, peer-to-peer file transfer app
+2026-06-25T21:00:48.7497740Z annotate: Keyboard-driven screen annotation tool
+2026-06-25T21:00:48.7498330Z ariax: Aria2 download manager
+2026-06-25T21:00:48.7499230Z baseline: Automate onboardings by installing apps and running scripts
+2026-06-25T21:00:48.7499790Z bettercmdtab: Replacement for the built-in Cmd+Tab app switcher
+2026-06-25T21:00:48.7500370Z brave-origin: Privacy-focused web browser
+2026-06-25T21:00:48.7500710Z brave-origin@beta: Privacy-focused web browser
+2026-06-25T21:00:48.7501120Z brave-origin@nightly: Privacy-focused web browser
+2026-06-25T21:00:48.7501550Z clarify: Autonomous CRM
+2026-06-25T21:00:48.7502140Z cotypist: System-wide AI autocomplete
+2026-06-25T21:00:48.7502530Z ctivo: Download and convert Tivo shows
+2026-06-25T21:00:48.7503120Z flow5: Potential flow solver for preliminary aerodynamic and hydrofoil design
+2026-06-25T21:00:48.7506250Z font-paperlogy
+2026-06-25T21:00:48.7509810Z font-yuyu
+2026-06-25T21:00:48.7511790Z font-yuyu-short
+2026-06-25T21:00:48.7514410Z go2tv: Cast media files to Smart TVs and Chromecast devices
+2026-06-25T21:00:48.7516900Z greensignal: Pre-call check for camera, microphone, speaker, and network quality
+2026-06-25T21:00:48.7519860Z kde-connect: Communicate with your handheld devices
+2026-06-25T21:00:48.7522950Z meta-quest-remote-desktop: Remote desktop companion app for Meta Quest headsets
+2026-06-25T21:00:48.7526190Z navigator: Companion app for ZSA's Navigator trackpad
+2026-06-25T21:00:48.7529390Z open-design: Local-first, agent-native design tool
+2026-06-25T21:00:48.7532650Z palmier-pro: Video Editor built for AI
+2026-06-25T21:00:48.7535970Z platinum-notes: Improve audio quality of music files
+2026-06-25T21:00:48.7539590Z pycharm-oss: Open-source edition of PyCharm
+2026-06-25T21:00:48.7542950Z r-rig-app: R Installation Manager
+2026-06-25T21:00:48.7546230Z radix: Disk space analyzer
+2026-06-25T21:00:48.7550420Z seekfast: Search text in documents and files
+2026-06-25T21:00:48.7554100Z shade: AI-powered media storage and asset management platform
+2026-06-25T21:00:48.7557910Z silkypix-developer-studio-se: RAW image development software used with Panasonic products
+2026-06-25T21:00:48.7562290Z supaterm: Terminal emulator with built-in agent automation
+2026-06-25T21:00:48.7566540Z sxitch: Tree based app switcher
+2026-06-25T21:00:48.7570710Z terax: Terminal-first AI-native developer workspace
+2026-06-25T21:00:48.7574790Z tikz-editor: WYSIWYG editor for TikZ diagrams in LaTeX
+2026-06-25T21:00:48.7579150Z tunarr: Create your own live TV channels from media on Plex, Jellyfin, Emby
+2026-06-25T21:00:48.7583230Z typewhisper: Speech-to-text and AI text processing
+2026-06-25T21:00:49.4061750Z [34m==>[0m [1mOutdated Formulae[0m
+2026-06-25T21:00:49.4062200Z aws-sam-cli
+2026-06-25T21:00:49.4062440Z certifi
+2026-06-25T21:00:49.4062850Z cmake
+2026-06-25T21:00:49.4063070Z cryptography
+2026-06-25T21:00:49.4063390Z curl
+2026-06-25T21:00:49.4063650Z gcc
+2026-06-25T21:00:49.4064060Z gh
+2026-06-25T21:00:49.4064290Z gradle
+2026-06-25T21:00:49.4064500Z jq
+2026-06-25T21:00:49.4064720Z node@22
+2026-06-25T21:00:49.4064920Z pipx
+2026-06-25T21:00:49.4065150Z python@3.13
+2026-06-25T21:00:49.4065770Z python@3.14
+2026-06-25T21:00:49.4065990Z rustup
+2026-06-25T21:00:49.4066210Z selenium-server
+2026-06-25T21:00:49.4066620Z xcodes
+2026-06-25T21:00:49.4067060Z [34m==>[0m [1mOutdated Casks[0m
+2026-06-25T21:00:49.4067530Z firefox
+2026-06-25T21:00:49.4067740Z google-chrome
+2026-06-25T21:00:49.4067980Z microsoft-edge
+2026-06-25T21:00:49.4068250Z session-manager-plugin
+2026-06-25T21:00:49.4068440Z 
+2026-06-25T21:00:49.4068840Z You have [1m16[0m outdated formulae and [1m4[0m outdated casks installed.
+2026-06-25T21:00:49.4069360Z You can upgrade them with [1mbrew upgrade[0m
+2026-06-25T21:00:49.4069860Z or list them with [1mbrew outdated[0m.
+2026-06-25T21:00:49.4661200Z ##[warning]Skipping aws/tap because it is not trusted. Run `brew trust aws/tap` to trust it.
+2026-06-25T21:00:49.4666730Z ##[warning]Skipping azure/bicep because it is not trusted. Run `brew trust azure/bicep` to trust it.
+2026-06-25T21:00:54.0670110Z ##[warning]Skipping aws/tap because it is not trusted. Run `brew trust aws/tap` to trust it.
+2026-06-25T21:01:01.6988810Z cmake 4.3.3 is already installed but outdated (so it will be upgraded).
+2026-06-25T21:01:01.7000740Z [33mWarning:[0m ninja 1.13.2 is already installed and up-to-date.
+2026-06-25T21:01:01.7001330Z To reinstall 1.13.2, run:
+2026-06-25T21:01:01.7001690Z   brew reinstall ninja
+2026-06-25T21:01:01.7019970Z [33mWarning:[0m pkgconf 2.5.1 is already installed and up-to-date.
+2026-06-25T21:01:01.7020260Z To reinstall 2.5.1, run:
+2026-06-25T21:01:01.7020460Z   brew reinstall pkgconf
+2026-06-25T21:01:01.8526580Z ##[warning]The following taps are not trusted:
+  aws/tap
+  azure/bicep
+
+Homebrew is currently ignoring formulae, casks and commands from these taps because tap trust is required.
+Prefer trusting only the specific formulae, casks or commands you need.
+Trust installed formulae from these taps with:
+  brew trust --formula azure/bicep/bicep
+Trust other specific casks and commands with:
+  brew trust --cask <user>/<tap>/<cask>
+  brew trust --command <user>/<tap>/<command>
+Whole-tap trust is broader and includes all current and future formulae,
+casks and commands from the listed taps. Trust whole taps with:
+  brew trust aws/tap azure/bicep
+Untap them with:
+  brew untap aws/tap azure/bicep
+To disable trust checks:
+  export HOMEBREW_NO_REQUIRE_TAP_TRUST=1
+This is not recommended and will be removed in a later release.
+For more information, see:
+  https://docs.brew.sh/Tap-Trust
+
+2026-06-25T21:01:02.2078570Z [34m==>[0m [1mWould install 9 formulae:[0m
+2026-06-25T21:01:02.2079010Z nasm yasm automake autoconf libtool cmake meson ldid coreutils
+2026-06-25T21:01:02.2099220Z [34m==>[0m [1mDownloading https://ghcr.io/v2/homebrew/core/nasm/manifests/3.01[0m
+2026-06-25T21:01:02.5417510Z [34m==>[0m [1mDownloading https://ghcr.io/v2/homebrew/core/yasm/manifests/1.3.0_2-1[0m
+2026-06-25T21:01:02.9349800Z [34m==>[0m [1mDownloading https://ghcr.io/v2/homebrew/core/automake/manifests/1.18.1_1[0m
+2026-06-25T21:01:03.4167810Z [34m==>[0m [1mWould install 2 dependencies for automake:[0m
+2026-06-25T21:01:03.4168210Z m4
+2026-06-25T21:01:03.4168550Z autoconf
+2026-06-25T21:01:03.4178350Z [34m==>[0m [1mDownloading https://ghcr.io/v2/homebrew/core/autoconf/manifests/2.73[0m
+2026-06-25T21:01:03.8024030Z [34m==>[0m [1mWould install 1 dependency for autoconf:[0m
+2026-06-25T21:01:03.8024470Z m4
+2026-06-25T21:01:03.8034200Z [34m==>[0m [1mDownloading https://ghcr.io/v2/homebrew/core/libtool/manifests/2.5.4[0m
+2026-06-25T21:01:04.1804740Z [34m==>[0m [1mWould install 1 dependency for libtool:[0m
+2026-06-25T21:01:04.1805870Z m4
+2026-06-25T21:01:04.1825570Z [34m==>[0m [1mDownloading https://ghcr.io/v2/homebrew/core/cmake/manifests/4.3.4[0m
+2026-06-25T21:01:04.5437200Z [34m==>[0m [1mDownloading https://ghcr.io/v2/homebrew/core/meson/manifests/1.11.1[0m
+2026-06-25T21:01:04.9445770Z [34m==>[0m [1mWould install 1 dependency for meson:[0m
+2026-06-25T21:01:04.9446210Z python@3.14
+2026-06-25T21:01:04.9452790Z [34m==>[0m [1mDownloading https://ghcr.io/v2/homebrew/core/ldid/manifests/2.1.5_1-1[0m
+2026-06-25T21:01:05.3143830Z [34m==>[0m [1mWould install 1 dependency for ldid:[0m
+2026-06-25T21:01:05.3144290Z libplist
+2026-06-25T21:01:05.3150940Z [34m==>[0m [1mDownloading https://ghcr.io/v2/homebrew/core/coreutils/manifests/9.11[0m
+2026-06-25T21:01:05.7513810Z [32m==>[0m [1mFetching downloads for: [32mnasm[39m, [32myasm[39m, [32mautomake[39m, [32mautoconf[39m, [32mlibtool[39m, [32mcmake[39m, [32mmeson[39m, [32mldid[39m and [32mcoreutils[39m[0m
+2026-06-25T21:01:06.2000440Z ✔︎ Bottle Manifest m4 (1.4.21)
+2026-06-25T21:01:06.2897960Z ✔︎ Bottle m4 (1.4.21)
+2026-06-25T21:01:06.3974360Z ✔︎ Bottle autoconf (2.73)
+2026-06-25T21:01:06.3974970Z ✔︎ Bottle automake (1.18.1_1)
+2026-06-25T21:01:06.5154410Z ✔︎ Bottle yasm (1.3.0_2)
+2026-06-25T21:01:06.5763920Z ✔︎ Bottle libtool (2.5.4)
+2026-06-25T21:01:06.7996960Z ✔︎ Bottle Manifest python@3.14 (3.14.6)
+2026-06-25T21:01:06.9164720Z ✔︎ Bottle nasm (3.01)
+2026-06-25T21:01:06.9173680Z ✔︎ Bottle Manifest libplist (2.7.0)
+2026-06-25T21:01:06.9700930Z ✔︎ Bottle meson (1.11.1)
+2026-06-25T21:01:07.3062970Z ✔︎ Bottle libplist (2.7.0)
+2026-06-25T21:01:07.4226760Z ✔︎ Bottle ldid (2.1.5_1)
+2026-06-25T21:01:07.5432350Z ✔︎ Bottle coreutils (9.11)
+2026-06-25T21:01:07.6671850Z ✔︎ Bottle cmake (4.3.4)
+2026-06-25T21:01:07.9252920Z ✔︎ Bottle python@3.14 (3.14.6)
+2026-06-25T21:01:08.1242190Z [34m==>[0m [1mPouring nasm--3.01.arm64_sonoma.bottle.tar.gz[0m
+2026-06-25T21:01:08.2463530Z 🍺  /opt/homebrew/Cellar/nasm/3.01: 12 files, 3.1MB
+2026-06-25T21:01:08.2485640Z [34m==>[0m [1mPouring yasm--1.3.0_2.arm64_sonoma.bottle.1.tar.gz[0m
+2026-06-25T21:01:08.3240440Z 🍺  /opt/homebrew/Cellar/yasm/1.3.0_2: 44 files, 3.5MB
+2026-06-25T21:01:08.3287050Z [32m==>[0m [1mInstalling dependencies for automake: [32mm4[39m and [32mautoconf[39m[0m
+2026-06-25T21:01:08.3291510Z [32m==>[0m [1mInstalling automake dependency: [32mm4[39m[0m
+2026-06-25T21:01:08.3312620Z [34m==>[0m [1mPouring m4--1.4.21.arm64_sonoma.bottle.tar.gz[0m
+2026-06-25T21:01:08.3476360Z 🍺  /opt/homebrew/Cellar/m4/1.4.21: 14 files, 814.5KB
+2026-06-25T21:01:08.3480860Z [32m==>[0m [1mInstalling automake dependency: [32mautoconf[39m[0m
+2026-06-25T21:01:08.3567130Z [34m==>[0m [1mPouring autoconf--2.73.arm64_sonoma.bottle.tar.gz[0m
+2026-06-25T21:01:08.4563340Z 🍺  /opt/homebrew/Cellar/autoconf/2.73: 73 files, 3.8MB
+2026-06-25T21:01:08.4566970Z [32m==>[0m [1mInstalling [32mautomake[39m[0m
+2026-06-25T21:01:08.4579290Z [34m==>[0m [1mPouring automake--1.18.1_1.arm64_sonoma.bottle.tar.gz[0m
+2026-06-25T21:01:08.5858220Z 🍺  /opt/homebrew/Cellar/automake/1.18.1_1: 134 files, 3.6MB
+2026-06-25T21:01:08.5937580Z [34m==>[0m [1mPouring libtool--2.5.4.arm64_sonoma.bottle.tar.gz[0m
+2026-06-25T21:01:08.6857300Z [34m==>[0m [1mCaveats[0m
+2026-06-25T21:01:08.6857670Z All commands have been installed with the prefix "g".
+2026-06-25T21:01:08.6858010Z If you need to use these commands with their normal names, you
+2026-06-25T21:01:08.6858370Z can add a "gnubin" directory to your PATH from your bashrc like:
+2026-06-25T21:01:08.6858840Z   PATH="/opt/homebrew/opt/libtool/libexec/gnubin:$PATH"
+2026-06-25T21:01:08.6859150Z [34m==>[0m [1mSummary[0m
+2026-06-25T21:01:08.6904490Z 🍺  /opt/homebrew/Cellar/libtool/2.5.4: 76 files, 4.1MB
+2026-06-25T21:01:08.6922790Z [32m==>[0m [1mUpgrading [32mcmake[39m[0m
+2026-06-25T21:01:08.6931510Z   4.3.3 -> 4.3.4 
+2026-06-25T21:01:08.7024050Z [34m==>[0m [1mPouring cmake--4.3.4.arm64_sonoma.bottle.tar.gz[0m
+2026-06-25T21:01:09.0113900Z [34m==>[0m [1mCaveats[0m
+2026-06-25T21:01:09.0114550Z To install the CMake documentation, run:
+2026-06-25T21:01:09.0114960Z   brew install cmake-docs
+2026-06-25T21:01:09.0115470Z [34m==>[0m [1mSummary[0m
+2026-06-25T21:01:09.0789390Z 🍺  /opt/homebrew/Cellar/cmake/4.3.4: 4,041 files, 66.4MB
+2026-06-25T21:01:09.1181160Z [34m==>[0m [1mPouring meson--1.11.1.all.bottle.tar.gz[0m
+2026-06-25T21:01:09.2681750Z 🍺  /opt/homebrew/Cellar/meson/1.11.1: 268 files, 4.3MB
+2026-06-25T21:01:09.2812910Z [32m==>[0m [1mInstalling ldid dependency: [32mlibplist[39m[0m
+2026-06-25T21:01:09.2872320Z [34m==>[0m [1mPouring libplist--2.7.0.arm64_sonoma.bottle.tar.gz[0m
+2026-06-25T21:01:09.5110290Z 🍺  /opt/homebrew/Cellar/libplist/2.7.0: 32 files, 660.7KB
+2026-06-25T21:01:09.5111050Z [34m==>[0m [1mPouring ldid--2.1.5_1.arm64_sonoma.bottle.1.tar.gz[0m
+2026-06-25T21:01:09.6302310Z 🍺  /opt/homebrew/Cellar/ldid/2.1.5_1: 6 files, 288KB
+2026-06-25T21:01:09.6465340Z [34m==>[0m [1mPouring coreutils--9.11.arm64_sonoma.bottle.tar.gz[0m
+2026-06-25T21:01:09.9862930Z [34m==>[0m [1mCaveats[0m
+2026-06-25T21:01:09.9863420Z Commands also provided by macOS and the commands dir, dircolors, vdir have been installed with the prefix "g".
+2026-06-25T21:01:09.9864030Z If you need to use these commands with their normal names, you can add a "gnubin" directory to your PATH with:
+2026-06-25T21:01:09.9864480Z   PATH="/opt/homebrew/opt/coreutils/libexec/gnubin:$PATH"
+2026-06-25T21:01:09.9864760Z [34m==>[0m [1mSummary[0m
+2026-06-25T21:01:09.9943180Z 🍺  /opt/homebrew/Cellar/coreutils/9.11: 457 files, 13.0MB
+2026-06-25T21:01:09.9947130Z [32m==>[0m [1mCaveats[0m
+2026-06-25T21:01:09.9947440Z Bash completion has been installed to:
+2026-06-25T21:01:09.9947690Z   /opt/homebrew/etc/bash_completion.d
+2026-06-25T21:01:09.9947910Z Emacs Lisp files have been installed to:
+2026-06-25T21:01:09.9948120Z   /opt/homebrew/share/emacs/site-lisp/cmake
+2026-06-25T21:01:09.9948370Z [34m==>[0m [1mlibtool[0m
+2026-06-25T21:01:09.9948590Z All commands have been installed with the prefix "g".
+2026-06-25T21:01:09.9948900Z If you need to use these commands with their normal names, you
+2026-06-25T21:01:09.9949230Z can add a "gnubin" directory to your PATH from your bashrc like:
+2026-06-25T21:01:09.9949550Z   PATH="/opt/homebrew/opt/libtool/libexec/gnubin:$PATH"
+2026-06-25T21:01:09.9949810Z [34m==>[0m [1mcmake[0m
+2026-06-25T21:01:09.9949990Z To install the CMake documentation, run:
+2026-06-25T21:01:09.9950190Z   brew install cmake-docs
+2026-06-25T21:01:09.9950410Z [34m==>[0m [1mcoreutils[0m
+2026-06-25T21:01:09.9950790Z Commands also provided by macOS and the commands dir, dircolors, vdir have been installed with the prefix "g".
+2026-06-25T21:01:09.9951370Z If you need to use these commands with their normal names, you can add a "gnubin" directory to your PATH with:
+2026-06-25T21:01:09.9951810Z   PATH="/opt/homebrew/opt/coreutils/libexec/gnubin:$PATH"
+2026-06-25T21:01:10.0127330Z ##[group]Run bash scripts/build-ffmpeg-ios.sh "8.1.2" "14.0"
+2026-06-25T21:01:10.0127660Z [36;1mbash scripts/build-ffmpeg-ios.sh "8.1.2" "14.0"[0m
+2026-06-25T21:01:10.0205140Z shell: /bin/bash -e {0}
+2026-06-25T21:01:10.0205330Z ##[endgroup]
+2026-06-25T21:01:12.4093760Z ==> FFmpeg 8.1.2 | iOS min 14.0 | 3 jobs
+2026-06-25T21:01:12.4094320Z ==> SDK: /Applications/Xcode_15.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS17.5.sdk
+2026-06-25T21:01:12.4095680Z ==> x264
+2026-06-25T21:01:12.4136810Z Cloning into '/Users/runner/work/LiteReplayd/LiteReplayd/build/src/x264'...
+2026-06-25T21:01:15.3728600Z No working C compiler found.
+2026-06-25T21:01:15.3751330Z ##[error]Process completed with exit code 1.
+2026-06-25T21:01:15.3845860Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-06-25T21:01:15.3847110Z Post job cleanup.
+2026-06-25T21:01:15.6203720Z [command]/opt/homebrew/bin/git version
+2026-06-25T21:01:15.6255180Z git version 2.54.0
+2026-06-25T21:01:15.6271600Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/47e3dc7b-ee9c-44ea-aadf-acfa097219fc/.gitconfig'
+2026-06-25T21:01:15.6277990Z Temporarily overriding HOME='/Users/runner/work/_temp/47e3dc7b-ee9c-44ea-aadf-acfa097219fc' before making global git config changes
+2026-06-25T21:01:15.6278850Z Adding repository directory to the temporary git global config as a safe directory
+2026-06-25T21:01:15.6281870Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/LiteReplayd/LiteReplayd
+2026-06-25T21:01:15.6329030Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-06-25T21:01:15.6371690Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-06-25T21:01:15.6865210Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-06-25T21:01:15.6897660Z http.https://github.com/.extraheader
+2026-06-25T21:01:15.6903200Z [command]/opt/homebrew/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-06-25T21:01:15.6941010Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-06-25T21:01:15.7448900Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-06-25T21:01:15.7490730Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-06-25T21:01:15.8087310Z Cleaning up orphan processes
+2026-06-25T21:01:16.2717110Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
