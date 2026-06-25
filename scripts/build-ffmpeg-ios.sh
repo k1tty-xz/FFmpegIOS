@@ -67,18 +67,16 @@ echo "==> SDK: $SDKPATH"
 # ===========================================================================
 dump_logs() {
   echo "::group::AUTODUMP: build logs on error"
-  for f in \
-    "$SRC/x264/config.log" \
-    "$SRC/libvpx/config.log" \
-    "$SRC/ffmpeg/ffbuild/config.log" \
-    "$SRC/dav1d/build-ios/meson-logs/meson-log.txt" \
-    "$SRC/x265/build-ios/CMakeFiles/CMakeError.log" \
-    "$SRC/x265/build-ios/CMakeFiles/CMakeOutput.log"; do
-    if [ -f "$f" ]; then
-      echo "===================== $f (tail -120) ====================="
-      tail -120 "$f"
-      echo
-    fi
+  # Find every build-system log under the source tree so whichever dependency
+  # failed has its real error surfaced — no need to enumerate each one.
+  find "$SRC" -type f \( \
+        -name config.log \
+     -o -name meson-log.txt \
+     -o -name CMakeError.log \
+     -o -name CMakeOutput.log \) 2>/dev/null | while read -r f; do
+    echo "===================== $f (tail -120) ====================="
+    tail -120 "$f"
+    echo
   done
   echo "::endgroup::"
 }
@@ -129,7 +127,7 @@ fetch_git() {  # name url [ref]
   fi
 }
 fetch_tar() {  # name url
-  local name="$1" url="$2" f="$SRC/$name.tar"
+  local name="$1" url="$2"
   if [ ! -d "$SRC/$name" ]; then
     mkdir -p "$SRC/$name"
     curl -fsSL "$url" | tar -xf - -C "$SRC/$name" --strip-components=1
