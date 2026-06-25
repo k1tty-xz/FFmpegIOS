@@ -287,7 +287,7 @@ build_ffmpeg() {
     --enable-libvorbis \
     --enable-videotoolbox --enable-audiotoolbox \
     --enable-static --disable-shared \
-    --enable-programs --enable-ffmpeg --enable-ffprobe \
+    --disable-ffplay \
     --disable-doc --disable-debug
   make -j"$JOBS"
   make install
