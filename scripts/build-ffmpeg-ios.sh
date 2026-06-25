@@ -42,7 +42,10 @@ export RANLIB="$(xcrun --sdk iphoneos -f ranlib)"
 export STRIP="$(xcrun --sdk iphoneos -f strip)"
 export LD="$(xcrun --sdk iphoneos -f ld)"
 
-ARCH_FLAGS="-arch $ARCH -isysroot $SDKPATH -miphoneos-version-min=$IOS_MIN -fembed-bitcode=no"
+# NOTE: do not add -fembed-bitcode=no — that is invalid clang syntax and makes
+# every compile fail with "invalid value 'no'". Bitcode is deprecated and off
+# by default since Xcode 14, so it simply doesn't need to be specified.
+ARCH_FLAGS="-arch $ARCH -isysroot $SDKPATH -miphoneos-version-min=$IOS_MIN"
 export CFLAGS="$ARCH_FLAGS -I$PREFIX/include -fPIC -O2"
 export CXXFLAGS="$CFLAGS"
 export LDFLAGS="$ARCH_FLAGS -L$PREFIX/lib"
