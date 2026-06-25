@@ -167,9 +167,16 @@ build_x264() {
   fetch_git x264 https://code.videolan.org/videolan/x264.git
   cd "$SRC/x264"
   make distclean >/dev/null 2>&1 || true
+  # --extra-asflags is essential: x264 assembles its .S files through a
+  # separate ASFLAGS path. Without the iOS -isysroot/-miphoneos-version-min,
+  # clang assembles them targeting the macOS HOST, producing macOS-tagged
+  # objects (e.g. bitstream-a-8.o) that fail to link into an iOS binary.
   ./configure --prefix="$PREFIX" --host="$HOST_TRIPLE" \
+    --sysroot="$SDKPATH" \
     --enable-static --disable-cli --enable-pic \
-    --extra-cflags="$CFLAGS" --extra-ldflags="$LDFLAGS"
+    --extra-cflags="$CFLAGS" \
+    --extra-asflags="$CFLAGS" \
+    --extra-ldflags="$LDFLAGS"
   make -j"$JOBS" && make install
 }
 
@@ -186,6 +193,29 @@ build_x265() {
     -DENABLE_SHARED=OFF -DENABLE_CLI=OFF -DENABLE_ASSEMBLY=ON \
     -DCROSS_COMPILE_ARM64=ON
   make -j"$JOBS" && make install
+
+  # x265's CMake only generates/installs x265.pc when it can detect a version
+  # from a git tag; our shallow clone has no tags, so it silently skips it.
+  # FFmpeg REQUIRES x265 via pkg-config, so emit a minimal .pc ourselves.
+  # x265 is a C++ static lib, so static linking needs the C++ runtime (-lc++).
+  if [ ! -f "$PREFIX/lib/pkgconfig/x265.pc" ]; then
+    local ver
+    ver="$(awk '/#define[ \t]+X265_BUILD/{print $3}' "$PREFIX/include/x265.h" 2>/dev/null || true)"
+    cat > "$PREFIX/lib/pkgconfig/x265.pc" <<EOF
+prefix=$PREFIX
+exec_prefix=\${prefix}
+libdir=\${prefix}/lib
+includedir=\${prefix}/include
+
+Name: x265
+Description: H.265/HEVC video encoder
+Version: ${ver:-0}
+Libs: -L\${libdir} -lx265
+Libs.private: -lc++
+Cflags: -I\${includedir}
+EOF
+    echo "[+] generated x265.pc (version ${ver:-0})"
+  fi
 }
 
 build_libvpx() {
