@@ -1,0 +1,74 @@
+=== replayd encoder introspection ===
+pid: 3767 arch: arm64
+[+] hooked VTCompressionSessionCreate
+[+] hooked VTSessionSetProperty
+[+] hooked VTSessionSetProperties
+[+] hooked AVAssetWriterInput init
+[+] hooked AVAssetWriterInput init (sourceFormatHint variant)
+[+] hooked AVAssetWriter init
+[*] ready — start a screen recording now.
+[Remote::replayd ]-> ---------------------------------------------------------------
+[AVAssetWriter init] URL: file:///private/var/mobile/Library/ReplayKit/ScreenRecording_06-25-2026%2022-24-41_1.mp4
+  fileType: public.mpeg-4
+---------------------------------------------------------------
+[AVAssetWriterInput init] mediaType: vide
+  outputSettings: {
+    AVVideoCodecKey = avc1;
+    AVVideoCompressionPropertiesKey =     {
+        AverageBitRate = 16915046;
+        ExpectedFrameRate = 60;
+        MaxKeyFrameInterval = 60;
+        ProfileLevel = "H264_High_AutoLevel";
+    };
+    AVVideoHeightKey = 1792;
+    AVVideoWidthKey = 828;
+}
+---------------------------------------------------------------
+[AVAssetWriterInput init+hint] mediaType: vide
+  outputSettings: {
+    AVVideoCodecKey = avc1;
+    AVVideoCompressionPropertiesKey =     {
+        AverageBitRate = 16915046;
+        ExpectedFrameRate = 60;
+        MaxKeyFrameInterval = 60;
+        ProfileLevel = "H264_High_AutoLevel";
+    };
+    AVVideoHeightKey = 1792;
+    AVVideoWidthKey = 828;
+}
+---------------------------------------------------------------
+[AVAssetWriterInput init] mediaType: soun
+  outputSettings: {
+    AVChannelLayoutKey = {length = 32, bytes = 0x02006500 00000000 00000000 00000000 ... 00000000 00000000 };
+    AVEncoderBitRateKey = 128000;
+    AVFormatIDKey = 1633772320;
+    AVNumberOfChannelsKey = 2;
+    AVSampleRateKey = 44100;
+}
+---------------------------------------------------------------
+[AVAssetWriterInput init+hint] mediaType: soun
+  outputSettings: {
+    AVChannelLayoutKey = {length = 32, bytes = 0x02006500 00000000 00000000 00000000 ... 00000000 00000000 };
+    AVEncoderBitRateKey = 128000;
+    AVFormatIDKey = 1633772320;
+    AVNumberOfChannelsKey = 2;
+    AVSampleRateKey = 44100;
+}
+---------------------------------------------------------------
+[AVAssetWriterInput init] mediaType: soun
+  outputSettings: {
+    AVChannelLayoutKey = {length = 32, bytes = 0x02006500 00000000 00000000 00000000 ... 00000000 00000000 };
+    AVEncoderBitRateKey = 128000;
+    AVFormatIDKey = 1633772320;
+    AVNumberOfChannelsKey = 2;
+    AVSampleRateKey = 44100;
+}
+---------------------------------------------------------------
+[AVAssetWriterInput init+hint] mediaType: soun
+  outputSettings: {
+    AVChannelLayoutKey = {length = 32, bytes = 0x02006500 00000000 00000000 00000000 ... 00000000 00000000 };
+    AVEncoderBitRateKey = 128000;
+    AVFormatIDKey = 1633772320;
+    AVNumberOfChannelsKey = 2;
+    AVSampleRateKey = 44100;
+}

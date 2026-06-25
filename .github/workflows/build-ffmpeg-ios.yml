@@ -1,0 +1,50 @@
+name: Build FFmpeg for iOS (arm64)
+
+# Cross-compiles a full FFmpeg + ffprobe for jailbroken iOS arm64 on a macOS
+# (Apple Silicon) runner, fake-signs with ldid, and uploads the binaries.
+on:
+  workflow_dispatch:
+    inputs:
+      ffmpeg_version:
+        description: "FFmpeg release version (tarball from ffmpeg.org/releases)"
+        default: "8.1.2"
+      ios_min:
+        description: "Minimum iOS deployment target"
+        default: "14.0"
+
+jobs:
+  build:
+    # macos-14 = Apple Silicon, ships Xcode + the iPhoneOS SDK.
+    runs-on: macos-14
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          echo "iPhoneOS SDK: $(xcrun --sdk iphoneos --show-sdk-path)"
+          clang --version
+
+      - name: Install build tools
+        run: |
+          brew update
+          # nasm/yasm: x86 asm (not used for arm64 but configure probes for them)
+          # automake/autoconf/libtool: needed for the libs cloned from git
+          # cmake/meson/ninja: x265 (cmake) and dav1d (meson)
+          # ldid: ad-hoc / entitlement signing so the binary runs on the device
+          brew install nasm yasm automake autoconf libtool cmake meson ninja ldid coreutils pkg-config
+
+      - name: Build FFmpeg + dependencies
+        run: bash scripts/build-ffmpeg-ios.sh "${{ inputs.ffmpeg_version }}" "${{ inputs.ios_min }}"
+
+      - name: Report binary info
+        run: |
+          file artifacts/bin/ffmpeg artifacts/bin/ffprobe
+          ls -lh artifacts/bin
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ffmpeg-${{ inputs.ffmpeg_version }}-ios-arm64
+          path: artifacts/**
+          if-no-files-found: error
