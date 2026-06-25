@@ -191,7 +191,11 @@ build_x265() {
     -DCMAKE_OSX_DEPLOYMENT_TARGET="$IOS_MIN" \
     -DCMAKE_INSTALL_PREFIX="$PREFIX" \
     -DENABLE_SHARED=OFF -DENABLE_CLI=OFF -DENABLE_ASSEMBLY=ON \
-    -DCROSS_COMPILE_ARM64=ON
+    -DCROSS_COMPILE_ARM64=ON \
+    `# CMake applies the iOS sysroot/version-min to C/C++ but NOT to the ASM` \
+    `# language, so x265's .S files (e.g. mc-a.S) assemble for the macOS host` \
+    `# and fail to link. Force the iOS platform flags onto the assembler.` \
+    -DCMAKE_ASM_FLAGS="$ARCH_FLAGS"
   make -j"$JOBS" && make install
 
   # x265's CMake only generates/installs x265.pc when it can detect a version
